@@ -1,39 +1,52 @@
 'use client';
 
 import { create } from 'zustand';
-import type { Question, Difficulty } from './questions';
+import type { Question, GameMode } from './questions';
+
+export interface UploadSource {
+  name: string;
+  size: number;
+  dataUrl: string;
+  lastModified: number;
+}
 
 export interface Store {
   quizId: string;
-  difficulty: Difficulty;
+  deckId: string;
+  mode: GameMode | null;
   questions: Question[];
   index: number;
   score: number;
-  wrongQs: { q: string; correct: string }[];
+  wrongQs: { q: string; correct: string; user?: string }[];
   responseTimes: number[];
   startTime: number;
+  upload?: UploadSource;
   actions: {
-    setQuiz: (id: string, diff: Store['difficulty'], qs: Question[]) => void;
+    setQuiz: (config: { id: string; mode: GameMode; questions: Question[] }) => void;
     answer: (choice: string, correct: string) => void;
     nextQuestion: () => void;
+    setUploadSource: (payload: UploadSource) => void;
   };
 }
 
 export const useStore = create<Store>((set, get) => ({
   quizId: '',
-  difficulty: 'easy',
+  deckId: '',
+  mode: null,
   questions: [],
   index: 0,
   score: 0,
   wrongQs: [],
   responseTimes: [],
   startTime: Date.now(),
+  upload: undefined,
   actions: {
-    setQuiz: (id, diff, qs) =>
+    setQuiz: ({ id, mode, questions }) =>
       set(() => ({
         quizId: id,
-        difficulty: diff,
-        questions: qs,
+        deckId: id,
+        mode,
+        questions,
         index: 0,
         score: 0,
         wrongQs: [],
@@ -48,7 +61,7 @@ export const useStore = create<Store>((set, get) => ({
         wrongQs:
           choice === correct
             ? state.wrongQs
-            : [...state.wrongQs, { q: questions[index]?.q ?? 'Unknown question', correct }],
+            : [...state.wrongQs, { q: questions[index]?.q ?? 'Unknown question', correct, user: choice }],
         responseTimes: [...state.responseTimes, elapsedSeconds],
       }));
     },
@@ -56,6 +69,10 @@ export const useStore = create<Store>((set, get) => ({
       set((state) => ({
         index: state.index + 1,
         startTime: Date.now(),
+      })),
+    setUploadSource: (payload) =>
+      set(() => ({
+        upload: payload,
       })),
   },
 }));

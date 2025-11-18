@@ -4,28 +4,69 @@ import type { DragEvent } from 'react';
 import { useCallback, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { useStore } from '@/lib/store';
+
+type UploadState = 'idle' | 'reading' | 'ready' | 'error';
 
 const ImportPage = () => {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string>('');
+  const [status, setStatus] = useState<UploadState>('idle');
+  const [error, setError] = useState<string>('');
+  const { upload, setUploadSource } = useStore((state) => ({
+    upload: state.upload,
+    setUploadSource: state.actions.setUploadSource,
+  }));
 
-  const handleFile = useCallback((file?: File) => {
-    if (file) {
+  const persistFile = useCallback(
+    (file?: File) => {
+      if (!file) return;
+      if (file.type !== 'application/pdf') {
+        setStatus('error');
+        setError('Please upload a PDF file. DOC/DOCX will be supported later.');
+        return;
+      }
+      setStatus('reading');
+      setError('');
       setFileName(file.name);
-    }
-  }, []);
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = typeof reader.result === 'string' ? reader.result : '';
+        setUploadSource({
+          name: file.name,
+          size: file.size,
+          dataUrl,
+          lastModified: file.lastModified,
+        });
+        setStatus('ready');
+      };
+      reader.onerror = () => {
+        setStatus('error');
+        setError('Unable to read file. Please try another PDF.');
+      };
+      reader.readAsDataURL(file);
+    },
+    [setUploadSource]
+  );
 
   const handleDrop = useCallback(
     (event: DragEvent<HTMLLabelElement>) => {
       event.preventDefault();
       const [file] = Array.from(event.dataTransfer.files);
-      handleFile(file);
+      persistFile(file);
     },
-    [handleFile]
+    [persistFile]
   );
 
-  const goToDifficulty = () => router.push('/play/difficulty?quiz=upload');
+  const goToDifficulty = () => {
+    if (!upload) {
+      setStatus('error');
+      setError('Upload a PDF first so we can generate questions later.');
+      return;
+    }
+    router.push('/play/difficulty?quiz=upload');
+  };
 
   return (
     <motion.section
@@ -45,7 +86,7 @@ const ImportPage = () => {
           className="flex flex-col items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/70 px-6 py-12 text-slate-600 transition hover:border-primary hover:bg-white sm:px-8 sm:py-16"
         >
           <span className="text-lg font-semibold text-slate-800">{fileName || 'Drop your file here'}</span>
-          <span className="text-sm text-slate-500">PDF, DOCX, or plain text</span>
+          <span className="text-sm text-slate-500">PDF only (DOCX support coming soon)</span>
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
@@ -57,11 +98,21 @@ const ImportPage = () => {
             id="uploader"
             ref={inputRef}
             type="file"
-            accept=".pdf,.txt,.doc,.docx"
+            accept=".pdf"
             className="hidden"
-            onChange={(event) => handleFile(event.target.files?.[0])}
+            onChange={(event) => persistFile(event.target.files?.[0])}
           />
         </label>
+        <div className="space-y-2 text-sm text-slate-500">
+          {status === 'reading' && <p>Reading file…</p>}
+          {status === 'ready' && upload && (
+            <p>
+              Ready! We stored <span className="font-semibold text-slate-800">{upload.name}</span> ({(upload.size / 1024 / 1024).toFixed(2)} MB)
+            </p>
+          )}
+          {error && <p className="text-rose-600">{error}</p>}
+          <p>We keep the PDF client-side for now and will process it on the next screen.</p>
+        </div>
         <div className="space-y-4">
           <button
             type="button"

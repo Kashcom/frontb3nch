@@ -21,7 +21,7 @@ const QuestionCard = ({ item, index, total, selected, revealCorrect, onSelect }:
     transition={{ duration: 0.3 }}
   >
     <p className="text-sm font-semibold uppercase tracking-wide text-emerald-600">
-      Question {index + 1} of {total}
+      Question {index + 1} of {total} · {item.difficulty}
     </p>
     <h2 className="mt-4 text-2xl font-bold text-slate-900 sm:text-3xl">{item.q}</h2>
     <p className="mt-2 text-xs uppercase text-slate-500 sm:text-sm">{item.category}</p>
@@ -37,6 +37,12 @@ const QuestionCard = ({ item, index, total, selected, revealCorrect, onSelect }:
         return <OptionCard key={option} text={option} state={state} disabled={Boolean(selected)} onSelect={() => onSelect(option)} />;
       })}
     </div>
+    {(revealCorrect || selected) && (
+      <div className="mt-6 rounded-2xl border border-emerald-100 bg-emerald-50/80 p-4 text-sm text-emerald-800">
+        <p className="font-semibold text-emerald-900">Answer card</p>
+        <p className="mt-1">Correct response: {item.correct}</p>
+      </div>
+    )}
   </motion.div>
 );
 

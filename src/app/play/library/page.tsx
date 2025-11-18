@@ -2,15 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-
-const decks = [
-  { id: 'math-master', title: 'Math Mastery', blurb: 'Fractions, ratios, and graphs' },
-  { id: 'science-lab', title: 'Science Lab', blurb: 'Plants, space, chemistry basics' },
-  { id: 'english-boost', title: 'English Boost', blurb: 'Grammar, vocab, figurative language' },
-  { id: 'history-quest', title: 'History Quest', blurb: 'World events & trailblazers' },
-  { id: 'geo-globe', title: 'Geo Globe', blurb: 'Maps, climate, landforms' },
-  { id: 'code-camp', title: 'Code Camp', blurb: 'Logic, loops, and UIs' },
-];
+import { allDecks } from '@/lib/questions';
 
 const LibraryPage = () => {
   const router = useRouter();
@@ -27,12 +19,10 @@ const LibraryPage = () => {
         <header className="text-center">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-600 sm:text-sm">Library</p>
           <p className="mt-2 text-3xl font-bold text-slate-900 sm:text-4xl">Pick a pre-made deck</p>
-          <p className="mt-2 text-base text-slate-600 sm:text-lg">
-            Subjects curated by teachers. Tap one to jump into difficulty selection.
-          </p>
+          <p className="mt-2 text-base text-slate-600 sm:text-lg">Pick a subject, then choose your game mode.</p>
         </header>
         <div className="quiz-grid">
-          {decks.map((deck) => (
+          {allDecks.map((deck) => (
             <button
               key={deck.id}
               type="button"
@@ -42,7 +32,15 @@ const LibraryPage = () => {
               <div>
                 <p className="text-xs font-semibold uppercase tracking-widest text-emerald-600">Deck</p>
                 <p className="mt-2 text-2xl font-bold text-slate-900">{deck.title}</p>
-                <p className="mt-3 text-sm text-slate-600">{deck.blurb}</p>
+                <p className="mt-3 text-sm text-slate-600">{deck.description}</p>
+                <div className={`mt-5 grid gap-3 rounded-2xl bg-gradient-to-br ${deck.accent} p-4 text-left`}>
+                  <div className="rounded-xl bg-white/70 p-3 text-sm font-semibold text-slate-800 shadow-sm">
+                    Q: {deck.previewQA.question}
+                  </div>
+                  <div className="rounded-xl bg-white/70 p-3 text-sm text-emerald-700 shadow-sm">
+                    A: {deck.previewQA.answer}
+                  </div>
+                </div>
               </div>
               <span className="mt-6 inline-flex items-center text-sm font-semibold text-primary">
                 Choose deck →

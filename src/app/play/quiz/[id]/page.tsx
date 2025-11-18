@@ -8,7 +8,7 @@ import QuestionCard from '@/components/QuestionCard';
 import LottieCorrect from '@/components/LottieCorrect';
 import LottieWrong from '@/components/LottieWrong';
 import { useStore } from '@/lib/store';
-import { getDurationForDifficulty } from '@/lib/utils';
+import { getDurationForMode } from '@/lib/utils';
 
 const QuizPage = () => {
   const router = useRouter();
@@ -19,15 +19,15 @@ const QuizPage = () => {
     if (Array.isArray(id)) return id[0];
     return '';
   }, [params]);
-  const { quizId, difficulty, questions, index, actions } = useStore((state) => ({
+  const { quizId, mode, questions, index, actions } = useStore((state) => ({
     quizId: state.quizId,
-    difficulty: state.difficulty,
+    mode: state.mode,
     questions: state.questions,
     index: state.index,
     actions: state.actions,
   }));
   const question = questions[index];
-  const duration = getDurationForDifficulty(difficulty);
+  const duration = getDurationForMode(mode);
   const [selected, setSelected] = useState<string | null>(null);
   const [revealCorrect, setRevealCorrect] = useState(false);
   const [timerKey, setTimerKey] = useState(0);
@@ -35,9 +35,9 @@ const QuizPage = () => {
 
   useEffect(() => {
     if (!questions.length) {
-      router.replace('/play/import');
+      router.replace(routeId === 'upload' ? '/play/import' : '/play/library');
     }
-  }, [questions.length, router]);
+  }, [questions.length, routeId, router]);
 
   useEffect(() => {
     if (routeId && quizId && routeId !== quizId) {
@@ -77,16 +77,20 @@ const QuizPage = () => {
   };
 
   const handleTimeout = useCallback(() => {
-    if (!question || selected) return;
+    if (!question || selected || !duration) return;
     setSelected('⏰ Time');
     setFeedback('wrong');
     setRevealCorrect(true);
     actions.answer('', question.correct);
     setTimeout(goNext, 1200);
-  }, [actions, goNext, question, selected]);
+  }, [actions, duration, goNext, question, selected]);
 
   if (!question) {
-    return null;
+    return (
+      <section className="flex min-h-[60vh] items-center justify-center bg-slate-50 px-4 py-10 text-center text-slate-600">
+        Loading quiz…
+      </section>
+    );
   }
 
   return (
@@ -98,7 +102,13 @@ const QuizPage = () => {
     >
       <h1 className="sr-only">Quiz in progress</h1>
       <div className="mx-auto flex max-w-5xl flex-col gap-5 sm:gap-6">
-        <TimerBar duration={duration} instanceKey={timerKey} onExpire={handleTimeout} />
+        {duration ? (
+          <TimerBar duration={duration} instanceKey={timerKey} onExpire={handleTimeout} />
+        ) : (
+          <div className="rounded-full border border-dashed border-emerald-200 bg-white px-4 py-2 text-center text-sm font-semibold text-emerald-700">
+            Free play mode · no countdown
+          </div>
+        )}
         <QuestionCard
           item={question}
           index={index}

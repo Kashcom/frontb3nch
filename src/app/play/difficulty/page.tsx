@@ -3,30 +3,44 @@
 import { Suspense, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { getQuestionsByDifficulty, type Difficulty } from '@/lib/questions';
+import { buildQuizQuestions, findDeck, type GameMode } from '@/lib/questions';
 import { useStore } from '@/lib/store';
 
-const options: { label: string; level: Difficulty; description: string; time: string }[] = [
-  { label: 'Easy', level: 'easy', description: 'Calm pacing, generous hints.', time: '60s' },
-  { label: 'Medium', level: 'medium', description: 'Balanced tempo, tougher distractors.', time: '45s' },
-  { label: 'Hard', level: 'hard', description: 'Lightning fast, tricky traps.', time: '30s' },
+const modes: { key: GameMode; label: string; description: string; detail: string }[] = [
+  { key: 'normal', label: 'Focus Mode', description: 'No countdown, just medium-hard prompts.', detail: 'Perfect for deep work or study groups.' },
+  {
+    key: 'timed',
+    label: 'Blitz Mode',
+    description: '45s global timer with streak bonuses.',
+    detail: 'Best for quick tournament-style sessions.',
+  },
 ];
 
 const DifficultyContent = () => {
   const router = useRouter();
   const params = useSearchParams();
   const quizId = params.get('quiz') ?? '';
+  const upload = useStore((state) => state.upload);
   const actions = useStore((state) => state.actions);
+  const deck = findDeck(quizId);
 
-  const subtitle = useMemo(() => (quizId ? `Quiz: ${quizId.replace('-', ' ')}` : 'Pick a deck first'), [quizId]);
+  const subtitle = useMemo(() => {
+    if (deck) return `${deck.title} — ${deck.description}`;
+    if (quizId === 'upload' && upload) return `Custom upload: ${upload.name}`;
+    return 'Pick a deck first';
+  }, [deck, quizId, upload]);
 
-  const handleSelect = (level: Difficulty) => {
+  const handleSelect = (mode: GameMode) => {
     if (!quizId) {
       router.push('/play/library');
       return;
     }
-    const qs = getQuestionsByDifficulty(level);
-    actions.setQuiz(quizId, level, qs);
+    if (!deck && quizId !== 'upload') {
+      router.push('/play/library');
+      return;
+    }
+    const qs = buildQuizQuestions(deck?.id ?? quizId);
+    actions.setQuiz({ id: quizId, mode, questions: qs });
     router.push(`/play/quiz/${quizId}`);
   };
 
@@ -37,24 +51,30 @@ const DifficultyContent = () => {
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <h1 className="sr-only">Select difficulty level</h1>
+      <h1 className="sr-only">Select game mode</h1>
       <div className="mx-auto max-w-5xl space-y-10 text-center">
         <header>
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary sm:text-sm">Difficulty</p>
-          <p className="mt-2 text-3xl font-bold text-slate-900 sm:text-4xl">How spicy should the quiz feel?</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary sm:text-sm">Choose mode</p>
+          <p className="mt-2 text-3xl font-bold text-slate-900 sm:text-4xl">How do you want to play?</p>
           <p className="mt-3 text-base text-slate-600 sm:text-lg">{subtitle}</p>
+          {!deck && quizId === 'upload' && upload && (
+            <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">PDF size: {(upload.size / 1024 / 1024).toFixed(2)} MB</p>
+          )}
+          {!deck && quizId !== 'upload' && (
+            <p className="mt-1 text-sm text-amber-600">Deck not found. Please head back to the library.</p>
+          )}
         </header>
-        <div className="grid gap-4 sm:gap-6 md:grid-cols-3">
-          {options.map((option) => (
+        <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
+          {modes.map((option) => (
             <button
-              key={option.level}
+              key={option.key}
               type="button"
-              onClick={() => handleSelect(option.level)}
+              onClick={() => handleSelect(option.key)}
               className="flex flex-col rounded-3xl border border-slate-100 bg-white p-5 text-left shadow-lg transition hover:-translate-y-1 hover:border-primary sm:p-6"
             >
-              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">{option.time}</p>
-              <p className="mt-3 text-2xl font-bold text-slate-900 sm:mt-4 sm:text-3xl">{option.label}</p>
-              <p className="mt-2 flex-1 text-slate-600 sm:mt-3">{option.description}</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">{option.label}</p>
+              <p className="mt-3 text-2xl font-bold text-slate-900 sm:mt-4 sm:text-3xl">{option.description}</p>
+              <p className="mt-2 flex-1 text-slate-600 sm:mt-3">{option.detail}</p>
               <span className="mt-4 text-sm font-semibold text-primary sm:mt-6">Select →</span>
             </button>
           ))}

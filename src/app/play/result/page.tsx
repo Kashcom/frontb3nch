@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useStore } from '@/lib/store';
-import { calculateAverage, computeScorePercent } from '@/lib/utils';
+import { calculateAverage, computeScorePercent, formatDuration, totalDuration } from '@/lib/utils';
 
 const Result3D = dynamic(() => import('@/components/Result3D'), {
   ssr: false,
@@ -14,27 +14,44 @@ const Result3D = dynamic(() => import('@/components/Result3D'), {
 
 const ResultPage = () => {
   const router = useRouter();
-  const { quizId, score, questions, wrongQs, responseTimes } = useStore((state) => ({
+  const { quizId, score, questions, wrongQs, responseTimes, mode } = useStore((state) => ({
     quizId: state.quizId,
     score: state.score,
     questions: state.questions,
     wrongQs: state.wrongQs,
     responseTimes: state.responseTimes,
+    mode: state.mode,
   }));
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!questions.length) {
-      router.replace('/play/import');
+      router.replace('/play/library');
     }
   }, [questions.length, router]);
 
   const percent = computeScorePercent(score, questions.length);
   const average = calculateAverage(responseTimes);
+  const totalTime = totalDuration(responseTimes);
+  const totalTimeLabel = formatDuration(totalTime);
+  const shareText = [
+    `ParhaiPlay ${quizId || 'custom deck'} · ${mode ?? 'solo'} mode`,
+    `Score: ${percent}% (${score}/${questions.length})`,
+    `Time: ${totalTimeLabel}`,
+    wrongQs.length ? `Missed: ${wrongQs.map((w) => w.correct).join(', ')}` : 'Flawless run!',
+  ].join('\n');
 
   const handleShare = async () => {
     try {
-      await navigator.clipboard.writeText(`${window.location.origin}/play/import`);
+      if (navigator.share) {
+        await navigator.share({
+          title: 'ParhaiPlay results',
+          text: shareText,
+          url: window.location.origin,
+        });
+      } else {
+        await navigator.clipboard.writeText(`${shareText}\n${window.location.origin}`);
+      }
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
@@ -59,6 +76,7 @@ const ResultPage = () => {
               You solved {score} / {questions.length} questions.
             </p>
             <p className="text-sm text-slate-500">Average response time: {average}</p>
+            <p className="text-sm text-slate-500">Total time: {totalTimeLabel}</p>
             <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:pt-4">
               <button
                 type="button"
@@ -79,22 +97,44 @@ const ResultPage = () => {
           </div>
           <Result3D score={percent} />
         </div>
-        <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-100 sm:p-8">
-          <p className="text-lg font-semibold text-slate-900 sm:text-xl">Review your stumbles</p>
-          {wrongQs.length === 0 ? (
-            <p className="mt-4 text-sm text-slate-600 sm:text-base">Flawless victory! No wrong answers recorded.</p>
-          ) : (
-            <ul className="mt-4 space-y-4">
-              {wrongQs.map((item, idx) => (
-                <li key={`${item.q}-${idx}`} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                  <p className="font-semibold text-slate-800">{item.q}</p>
-                  <p className="text-sm text-slate-500">
-                    Correct answer: <span className="font-semibold text-primary">{item.correct}</span>
-                  </p>
-                </li>
-              ))}
-            </ul>
-          )}
+        <div className="grid gap-8 lg:grid-cols-2">
+          <div className="rounded-3xl border border-dashed border-slate-200 bg-white/80 p-6 text-left shadow-inner sm:p-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Shareable recap</p>
+            <p className="mt-3 text-2xl font-bold text-slate-900">Spent {totalTimeLabel}</p>
+            <p className="mt-2 text-sm text-slate-600">
+              {score} of {questions.length} prompts solved · Mode: {mode ?? 'normal'}
+            </p>
+            <pre className="mt-4 whitespace-pre-wrap rounded-2xl bg-slate-900/90 p-4 text-left text-xs text-slate-100">{shareText}</pre>
+            <button
+              type="button"
+              onClick={handleShare}
+              className="mt-4 w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-slate-800"
+            >
+              {copied ? 'Copied!' : 'Share snapshot'}
+            </button>
+          </div>
+          <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-100 sm:p-8">
+            <p className="text-lg font-semibold text-slate-900 sm:text-xl">Review your stumbles</p>
+            {wrongQs.length === 0 ? (
+              <p className="mt-4 text-sm text-slate-600 sm:text-base">Flawless victory! No wrong answers recorded.</p>
+            ) : (
+              <ul className="mt-4 space-y-4">
+                {wrongQs.map((item, idx) => (
+                  <li key={`${item.q}-${idx}`} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                    <p className="font-semibold text-slate-800">{item.q}</p>
+                    {item.user && (
+                      <p className="text-sm text-rose-500">
+                        Your pick: <span className="font-semibold">{item.user}</span>
+                      </p>
+                    )}
+                    <p className="text-sm text-slate-500">
+                      Correct answer: <span className="font-semibold text-primary">{item.correct}</span>
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       </div>
     </motion.section>
