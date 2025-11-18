@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { useShallow } from 'zustand/react/shallow';
 import TimerBar from '@/components/TimerBar';
 import QuestionCard from '@/components/QuestionCard';
 import LottieCorrect from '@/components/LottieCorrect';
@@ -19,13 +20,15 @@ const QuizPage = () => {
     if (Array.isArray(id)) return id[0];
     return '';
   }, [params]);
-  const { quizId, mode, questions, index, actions } = useStore((state) => ({
-    quizId: state.quizId,
-    mode: state.mode,
-    questions: state.questions,
-    index: state.index,
-    actions: state.actions,
-  }));
+  const { quizId, mode, questions, index, actions } = useStore(
+    useShallow((state) => ({
+      quizId: state.quizId,
+      mode: state.mode,
+      questions: state.questions,
+      index: state.index,
+      actions: state.actions,
+    }))
+  );
   const question = questions[index];
   const duration = getDurationForMode(mode);
   const [selected, setSelected] = useState<string | null>(null);

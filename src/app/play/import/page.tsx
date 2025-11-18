@@ -4,6 +4,7 @@ import type { DragEvent } from 'react';
 import { useCallback, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { useShallow } from 'zustand/react/shallow';
 import { useStore } from '@/lib/store';
 
 type UploadState = 'idle' | 'reading' | 'ready' | 'error';
@@ -14,10 +15,12 @@ const ImportPage = () => {
   const [fileName, setFileName] = useState<string>('');
   const [status, setStatus] = useState<UploadState>('idle');
   const [error, setError] = useState<string>('');
-  const { upload, setUploadSource } = useStore((state) => ({
-    upload: state.upload,
-    setUploadSource: state.actions.setUploadSource,
-  }));
+  const { upload, setUploadSource } = useStore(
+    useShallow((state) => ({
+      upload: state.upload,
+      setUploadSource: state.actions.setUploadSource,
+    }))
+  );
 
   const persistFile = useCallback(
     (file?: File) => {

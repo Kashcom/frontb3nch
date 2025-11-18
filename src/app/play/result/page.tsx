@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { useShallow } from 'zustand/react/shallow';
 import { useStore } from '@/lib/store';
 import { calculateAverage, computeScorePercent, formatDuration, totalDuration } from '@/lib/utils';
 
@@ -14,14 +15,16 @@ const Result3D = dynamic(() => import('@/components/Result3D'), {
 
 const ResultPage = () => {
   const router = useRouter();
-  const { quizId, score, questions, wrongQs, responseTimes, mode } = useStore((state) => ({
-    quizId: state.quizId,
-    score: state.score,
-    questions: state.questions,
-    wrongQs: state.wrongQs,
-    responseTimes: state.responseTimes,
-    mode: state.mode,
-  }));
+  const { quizId, score, questions, wrongQs, responseTimes, mode } = useStore(
+    useShallow((state) => ({
+      quizId: state.quizId,
+      score: state.score,
+      questions: state.questions,
+      wrongQs: state.wrongQs,
+      responseTimes: state.responseTimes,
+      mode: state.mode,
+    }))
+  );
   const [copied, setCopied] = useState(false);
 
   const redirectRef = useRef(false);
