@@ -8,9 +8,17 @@ import { useStore } from '@/lib/store';
 import { calculateAverage, computeScorePercent, formatDuration, totalDuration } from '@/lib/utils';
 import ResultBadge from '@/components/ResultBadge';
 
+type ReviewStatus = 'idle' | 'loading' | 'ready' | 'error';
+interface CoachReview {
+  headline: string;
+  strengths: string[];
+  focus: string[];
+  actions: string[];
+}
+
 const ResultPage = () => {
   const router = useRouter();
-  const { quizId, score, questions, wrongQs, responseTimes, mode } = useStore(
+  const { quizId, score, questions, wrongQs, responseTimes, mode, analysis } = useStore(
     useShallow((state) => ({
       quizId: state.quizId,
       score: state.score,
@@ -18,9 +26,13 @@ const ResultPage = () => {
       wrongQs: state.wrongQs,
       responseTimes: state.responseTimes,
       mode: state.mode,
+      analysis: state.analysis,
     }))
   );
   const [copied, setCopied] = useState(false);
+  const [reviewStatus, setReviewStatus] = useState<ReviewStatus>('idle');
+  const [reviewError, setReviewError] = useState('');
+  const [coachReview, setCoachReview] = useState<CoachReview | null>(null);
 
   const redirectRef = useRef(false);
   useEffect(() => {
@@ -40,6 +52,47 @@ const ResultPage = () => {
     `Time: ${totalTimeLabel}`,
     wrongQs.length ? `Missed: ${wrongQs.map((w) => w.correct).join(', ')}` : 'Flawless run!',
   ].join('\n');
+  const includeAnalysis = quizId === 'upload' && Boolean(analysis?.questionSet?.length);
+  const summaryForAi = includeAnalysis ? analysis?.summary : undefined;
+  const highlightsForAi = includeAnalysis && analysis?.highlights ? analysis.highlights : undefined;
+
+  useEffect(() => {
+    if (!questions.length) return;
+    const controller = new AbortController();
+    const run = async () => {
+      try {
+        setReviewStatus('loading');
+        setReviewError('');
+        const response = await fetch('/api/quiz/review', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            quizId,
+            mode,
+            score,
+            total: questions.length,
+            responseTimes,
+            wrongQs,
+            summary: summaryForAi,
+            highlights: highlightsForAi ?? [],
+          }),
+          signal: controller.signal,
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload?.error ?? 'Unable to fetch AI review');
+        }
+        setCoachReview(payload.review);
+        setReviewStatus('ready');
+      } catch (error) {
+        if ((error as Error)?.name === 'AbortError') return;
+        setReviewStatus('error');
+        setReviewError(error instanceof Error ? error.message : 'Unexpected AI error');
+      }
+    };
+    void run();
+    return () => controller.abort();
+  }, [highlightsForAi, mode, questions.length, quizId, responseTimes, score, summaryForAi, wrongQs]);
 
   const handleShare = async () => {
     try {
@@ -97,7 +150,7 @@ const ResultPage = () => {
           </div>
           <ResultBadge score={percent} />
         </div>
-        <div className="grid gap-8 lg:grid-cols-2">
+        <div className="grid gap-8 lg:grid-cols-3">
           <div className="rounded-3xl border border-dashed border-slate-200 bg-white/80 p-6 text-left shadow-inner sm:p-8">
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Shareable recap</p>
             <p className="mt-3 text-2xl font-bold text-slate-900">Spent {totalTimeLabel}</p>
@@ -133,6 +186,49 @@ const ResultPage = () => {
                   </li>
                 ))}
               </ul>
+            )}
+          </div>
+          <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-xl sm:p-8">
+            <p className="text-lg font-semibold text-slate-900 sm:text-xl">AI review & insights</p>
+            {coachReview && (
+              <div className="mt-3 space-y-3 text-sm text-slate-600">
+                <p className="text-base font-semibold text-primary">{coachReview.headline}</p>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-500">Strengths</p>
+                  <ul className="mt-1 list-disc space-y-1 pl-4">
+                    {coachReview.strengths.map((item) => (
+                      <li key={`strength-${item}`}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-500">Focus next</p>
+                  <ul className="mt-1 list-disc space-y-1 pl-4">
+                    {coachReview.focus.map((item) => (
+                      <li key={`focus-${item}`}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Next actions</p>
+                  <ul className="mt-1 list-disc space-y-1 pl-4">
+                    {coachReview.actions.map((item) => (
+                      <li key={`action-${item}`}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
+            {reviewStatus === 'loading' && <p className="mt-4 text-sm text-slate-500">Asking Gemini for coaching tips…</p>}
+            {reviewError && <p className="mt-4 text-sm text-rose-500">{reviewError}</p>}
+            {!coachReview && reviewStatus === 'ready' && !reviewError && (
+              <p className="mt-4 text-sm text-slate-500">No AI insights available yet.</p>
+            )}
+            {summaryForAi && (
+              <details className="mt-6 rounded-2xl border border-slate-100 bg-slate-50/80 p-4 text-left text-sm text-slate-600">
+                <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">PDF summary</summary>
+                <p className="mt-2">{summaryForAi}</p>
+              </details>
             )}
           </div>
         </div>

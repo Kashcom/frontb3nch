@@ -1,9 +1,11 @@
 export type Difficulty = 'medium' | 'hard';
 export type GameMode = 'normal' | 'timed';
 
+export type QuestionCategory = 'math' | 'science' | 'coding' | 'custom';
+
 export interface Question {
   id: string;
-  category: 'math' | 'science' | 'coding';
+  category: QuestionCategory;
   difficulty: Difficulty;
   q: string;
   correct: string;

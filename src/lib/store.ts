@@ -3,6 +3,23 @@
 import { create } from 'zustand';
 import type { Question, GameMode } from './questions';
 
+export interface PdfQuizSection {
+  title: string;
+  insight: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+}
+
+export interface PdfQuizAnalysis {
+  summary: string;
+  highlights: string[];
+  sections: PdfQuizSection[];
+  recommendations: string[];
+  context: string;
+  questionSet: Question[];
+  sourceName: string;
+  generatedAt: number;
+}
+
 export interface UploadSource {
   name: string;
   size: number;
@@ -21,11 +38,13 @@ export interface Store {
   responseTimes: number[];
   startTime: number;
   upload?: UploadSource;
+  analysis?: PdfQuizAnalysis;
   actions: {
     setQuiz: (config: { id: string; mode: GameMode; questions: Question[] }) => void;
     answer: (choice: string, correct: string) => void;
     nextQuestion: () => void;
     setUploadSource: (payload: UploadSource) => void;
+    setAnalysis: (payload?: PdfQuizAnalysis) => void;
   };
 }
 
@@ -40,6 +59,7 @@ export const useStore = create<Store>((set, get) => ({
   responseTimes: [],
   startTime: Date.now(),
   upload: undefined,
+  analysis: undefined,
   actions: {
     setQuiz: ({ id, mode, questions }) =>
       set(() => ({
@@ -73,6 +93,11 @@ export const useStore = create<Store>((set, get) => ({
     setUploadSource: (payload) =>
       set(() => ({
         upload: payload,
+        analysis: undefined,
+      })),
+    setAnalysis: (payload) =>
+      set(() => ({
+        analysis: payload,
       })),
   },
 }));
