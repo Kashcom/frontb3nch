@@ -132,11 +132,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'File exceeds 15MB limit' }, { status: 413 });
     }
     let cleaned = '';
-    try {
-      const llamaText = await parsePdfWithLlama(buffer, name);
-      cleaned = sanitizePdfText(llamaText);
-    } catch (llamaError) {
-      console.warn('llamaparse primary parse failed, falling back to pdf-parse', llamaError);
+    const hasParseKey = Boolean(process.env.PARSE_KEY);
+    if (!hasParseKey) {
+      console.warn('PARSE_KEY is not set, skipping LlamaParse and using pdf-parse fallback');
+    }
+    if (hasParseKey) {
+      try {
+        const llamaText = await parsePdfWithLlama(buffer, name);
+        cleaned = sanitizePdfText(llamaText);
+      } catch (llamaError) {
+        console.warn('llamaparse primary parse failed, falling back to pdf-parse', llamaError);
+      }
+    }
+    if (!cleaned) {
       const pdfParse = await loadPdfParse();
       const pdfData = await pdfParse(buffer);
       cleaned = sanitizePdfText(pdfData.text);
