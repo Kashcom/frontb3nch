@@ -131,23 +131,22 @@ export async function POST(request: Request) {
     if (buffer.length > 15 * 1024 * 1024) {
       return NextResponse.json({ error: 'File exceeds 15MB limit' }, { status: 413 });
     }
+    // Use pdf-parse as primary (faster, more reliable), LlamaParse as optional enhancement
     let cleaned = '';
-    const hasParseKey = Boolean(process.env.PARSE_KEY);
-    if (!hasParseKey) {
-      console.warn('PARSE_KEY is not set, skipping LlamaParse and using pdf-parse fallback');
-    }
-    if (hasParseKey) {
-      try {
-        const llamaText = await parsePdfWithLlama(buffer, name);
-        cleaned = sanitizePdfText(llamaText);
-      } catch (llamaError) {
-        console.warn('llamaparse primary parse failed, falling back to pdf-parse', llamaError);
-      }
-    }
-    if (!cleaned) {
+    try {
       const pdfParse = await loadPdfParse();
       const pdfData = await pdfParse(buffer);
       cleaned = sanitizePdfText(pdfData.text);
+    } catch (pdfError) {
+      console.warn('pdf-parse failed, attempting LlamaParse', pdfError);
+      try {
+        // Try LlamaParse with shorter timeout for faster fallback
+        const llamaText = await parsePdfWithLlama(buffer, name, { timeoutMs: 20000 });
+        cleaned = sanitizePdfText(llamaText);
+      } catch (llamaError) {
+        console.error('Both parsers failed', { pdfError, llamaError });
+        throw new Error('Failed to extract text from PDF with both parsers');
+      }
     }
     if (!cleaned) {
       return NextResponse.json({ error: 'Unable to read text from PDF' }, { status: 422 });

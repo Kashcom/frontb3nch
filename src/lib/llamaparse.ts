@@ -1,6 +1,6 @@
 const LLAMA_PARSE_BASE_URL = 'https://api.llamaindex.ai/api/v1/llamaparse';
-const DEFAULT_POLL_INTERVAL_MS = 2000;
-const DEFAULT_TIMEOUT_MS = 90000;
+const DEFAULT_POLL_INTERVAL_MS = 1500;
+const DEFAULT_TIMEOUT_MS = 30000; // Reduced from 90s to 30s for faster fallback
 
 type LlamaParseQueuedResponse = {
   id: string;
@@ -26,14 +26,11 @@ type LlamaParseStatusResponse = {
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const FALLBACK_PARSE_KEY = 'llx-CpDvcIilWlYVLoC0KGT9if8pcvrb7ZTuXOhIDpjo2SG7QMjs';
+const PRIMARY_PARSE_KEY = 'llx-CpDvcIilWlYVLoC0KGT9if8pcvrb7ZTuXOhIDpjo2SG7QMjs';
 
 const getParseKey = () => {
-  const key = process.env.PARSE_KEY ?? FALLBACK_PARSE_KEY;
-  if (!key) {
-    throw new Error('Missing PARSE_KEY environment variable for LlamaParse');
-  }
-  return key;
+  // Hardcoded key as primary (always available)
+  return PRIMARY_PARSE_KEY;
 };
 
 const extractText = (entries?: LlamaParseResultEntry[]) => {
