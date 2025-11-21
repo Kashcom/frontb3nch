@@ -78,9 +78,17 @@ const ResultPage = () => {
           }),
           signal: controller.signal,
         });
-        const payload = await response.json();
+        const contentType = response.headers.get('content-type') ?? '';
+        let payload: any = null;
+        let fallbackText = '';
+        if (contentType.includes('application/json')) {
+          payload = await response.json();
+        } else {
+          fallbackText = await response.text();
+        }
         if (!response.ok) {
-          throw new Error(payload?.error ?? 'Unable to fetch AI review');
+          const errorMsg = payload?.detail || payload?.error || fallbackText || `Request failed (${response.status})`;
+          throw new Error(errorMsg);
         }
         setCoachReview(payload.review);
         setReviewStatus('ready');

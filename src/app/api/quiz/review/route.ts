@@ -75,26 +75,50 @@ export async function POST(request: Request) {
       'Use the supplied stats, mistake log, and optional PDF summary for context.',
     ].join(' ');
 
-    const model = getGeminiModel('gemini-1.5-flash', {
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: reviewSchema,
-        temperature: 0.6,
-      },
-    });
+    let model;
+    try {
+      model = getGeminiModel('gemini-1.5-flash', {
+        generationConfig: {
+          responseMimeType: 'application/json',
+          responseSchema: reviewSchema,
+          temperature: 0.6,
+        },
+      });
+    } catch (modelError) {
+      const msg = modelError instanceof Error ? modelError.message : 'Failed to initialize Gemini model';
+      console.error('Gemini model init error', modelError);
+      return NextResponse.json({ error: 'Failed to initialize AI model', detail: msg }, { status: 500 });
+    }
 
     const promptText = `${prompt}\n\nStats:\n${statsBlock}\n\nMistakes:\n${mistakeBlock}\n\nPDF summary:\n${summary ?? 'N/A'}\n\nHighlights:\n${highlightBlock}`;
 
-    const result = await model.generateContent(promptText);
+    let result;
+    try {
+      result = await model.generateContent(promptText);
+    } catch (genError) {
+      const msg = genError instanceof Error ? genError.message : 'Failed to generate content';
+      console.error('Gemini generateContent error', genError);
+      return NextResponse.json({ error: 'Failed to generate AI review', detail: msg }, { status: 502 });
+    }
+
     const raw = result.response.text();
     if (!raw) {
       return NextResponse.json({ error: 'Gemini returned an empty response' }, { status: 502 });
     }
-    const review = JSON.parse(raw);
+
+    let review;
+    try {
+      review = JSON.parse(raw);
+    } catch (parseError) {
+      console.error('JSON parse error', parseError, 'Raw response:', raw);
+      return NextResponse.json({ error: 'Failed to parse AI response', detail: 'Invalid JSON from Gemini' }, { status: 502 });
+    }
+
     return NextResponse.json({ review, generatedAt: Date.now() });
   } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to generate AI review';
     console.error('review error', error);
-    return NextResponse.json({ error: 'Failed to generate AI review' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to generate AI review', detail: message }, { status: 500 });
   }
 }
 

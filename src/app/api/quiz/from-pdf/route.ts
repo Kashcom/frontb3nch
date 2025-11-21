@@ -153,40 +153,51 @@ export async function POST(request: Request) {
     }
 
     const sections = chunkForPrompt(cleaned).slice(0, 6);
+    const docContext = sections.map((chunk, idx) => `Section ${idx + 1}:\n${chunk}`).join('\n\n');
     const instructions = [
       'You are ParhaiPlay, a study quiz builder.',
       'Analyze the supplied PDF content and craft a JSON response that matches the provided schema.',
       'Questions should stay faithful to the facts, be concise (<260 chars), and include novel distractors.',
       'Focus on medium/hard difficulty for college-level learners.',
     ].join(' ');
-    const promptPayload = {
-      role: 'ParhaiPlay quiz builder',
-      directives: instructions,
-      source: {
-        name,
-        chunkCount: sections.length,
-        sections: sections.map((chunk, idx) => ({
-          id: idx + 1,
-          text: chunk,
-        })),
-      },
-    };
 
-    const model = getGeminiModel('gemini-1.5-flash', {
-      generationConfig: {
-        responseMimeType: 'application/json',
-        responseSchema: analysisSchema,
-        temperature: 0.5,
-      },
-    });
+    let model;
+    try {
+      model = getGeminiModel('gemini-1.5-flash', {
+        generationConfig: {
+          responseMimeType: 'application/json',
+          responseSchema: analysisSchema,
+          temperature: 0.5,
+        },
+      });
+    } catch (modelError) {
+      const msg = modelError instanceof Error ? modelError.message : 'Failed to initialize Gemini model';
+      console.error('Gemini model init error', modelError);
+      return NextResponse.json({ error: 'Failed to initialize AI model', detail: msg }, { status: 500 });
+    }
 
-    const result = await model.generateContent(JSON.stringify(promptPayload));
+    let result;
+    try {
+      const promptText = `${instructions}\nSource file: ${name}\n\n${docContext}`;
+      result = await model.generateContent(promptText);
+    } catch (genError) {
+      const msg = genError instanceof Error ? genError.message : 'Failed to generate content';
+      console.error('Gemini generateContent error', genError);
+      return NextResponse.json({ error: 'Failed to generate quiz', detail: msg }, { status: 502 });
+    }
 
     const rawText = result.response.text();
     if (!rawText) {
       return NextResponse.json({ error: 'Gemini returned an empty response' }, { status: 502 });
     }
-    const aiPayload = JSON.parse(rawText);
+
+    let aiPayload;
+    try {
+      aiPayload = JSON.parse(rawText);
+    } catch (parseError) {
+      console.error('JSON parse error', parseError, 'Raw response:', rawText);
+      return NextResponse.json({ error: 'Failed to parse AI response', detail: 'Invalid JSON from Gemini' }, { status: 502 });
+    }
     const questionSet = (Array.isArray(aiPayload?.quiz?.questions) ? aiPayload.quiz.questions : [])
       .map(buildQuestion)
       .filter(Boolean) as Question[];
