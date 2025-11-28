@@ -4,7 +4,6 @@ import { z } from 'zod';
 import { getGeminiModel } from '@/lib/ai';
 import { chunkForPrompt, dataUrlToBuffer, sanitizePdfText } from '@/lib/pdf';
 import type { Question } from '@/lib/questions';
-import { parsePdfWithLlama } from '@/lib/llamaparse';
 
 export const runtime = 'nodejs';
 
@@ -121,48 +120,60 @@ const buildQuestion = (item: { question: string; answer: string; distractors: st
 
 export async function POST(request: Request) {
   try {
+    console.log('[API] Received PDF quiz generation request');
     const json = await request.json();
     const parsed = requestSchema.safeParse(json);
     if (!parsed.success) {
+      console.error('[API] Invalid payload:', parsed.error);
       return NextResponse.json({ error: 'Invalid payload', issues: parsed.error.flatten() }, { status: 400 });
     }
     const { dataUrl, name } = parsed.data;
     const buffer = dataUrlToBuffer(dataUrl);
+    console.log('[API] PDF loaded:', name, 'Size:', (buffer.length / 1024 / 1024).toFixed(2), 'MB');
+
     if (buffer.length > 15 * 1024 * 1024) {
       return NextResponse.json({ error: 'File exceeds 15MB limit' }, { status: 413 });
     }
-    // Use LlamaParse API as primary (best quality for complex PDFs), pdf-parse as fallback
+
+    // Simplified approach: Use pdf-parse library only for maximum reliability
     let cleaned = '';
-    let parseMethod = 'unknown';
 
     try {
-      // First attempt: LlamaParse API (best quality, handles complex layouts)
-      console.log('Attempting LlamaParse API for:', name);
-      const llamaText = await parsePdfWithLlama(buffer, name, { timeoutMs: 45000 });
-      cleaned = sanitizePdfText(llamaText);
-      parseMethod = 'llamaparse';
-      console.log('LlamaParse succeeded, extracted', cleaned.length, 'characters');
-    } catch (llamaError) {
-      console.warn('LlamaParse failed, falling back to pdf-parse library', llamaError);
+      console.log('[PDF Parse] Loading pdf-parse library...');
+      const pdfParse = await loadPdfParse();
+      console.log('[PDF Parse] Library loaded, parsing PDF...');
 
-      try {
-        // Fallback: pdf-parse JavaScript library (faster, simpler)
-        const pdfParse = await loadPdfParse();
-        const pdfData = await pdfParse(buffer);
-        cleaned = sanitizePdfText(pdfData.text);
-        parseMethod = 'pdf-parse';
-        console.log('pdf-parse succeeded, extracted', cleaned.length, 'characters');
-      } catch (pdfError) {
-        console.error('Both parsers failed', { llamaError, pdfError });
-        const llamaMsg = llamaError instanceof Error ? llamaError.message : 'LlamaParse failed';
-        const pdfMsg = pdfError instanceof Error ? pdfError.message : 'pdf-parse failed';
-        throw new Error(`Failed to extract text from PDF. LlamaParse: ${llamaMsg}. pdf-parse: ${pdfMsg}`);
+      const pdfData = await pdfParse(buffer);
+      console.log('[PDF Parse] Raw extraction complete. Text length:', pdfData.text?.length || 0);
+
+      cleaned = sanitizePdfText(pdfData.text);
+      console.log('[PDF Parse] After sanitization:', cleaned.length, 'characters');
+
+      if (!cleaned || cleaned.length < 50) {
+        console.error('[PDF Parse] Extracted text too short:', cleaned.length);
+        return NextResponse.json(
+          {
+            error: 'PDF appears to be empty or unreadable',
+            detail: 'Please ensure your PDF contains extractable text (not just images) and is not corrupted or password-protected.'
+          },
+          { status: 422 }
+        );
       }
-    }
-    if (!cleaned) {
-      return NextResponse.json({ error: 'Unable to read text from PDF' }, { status: 422 });
+
+    } catch (pdfError) {
+      console.error('[PDF Parse] Failed:', pdfError);
+      const errorMsg = pdfError instanceof Error ? pdfError.message : 'Unknown parsing error';
+      return NextResponse.json(
+        {
+          error: 'Failed to extract text from PDF',
+          detail: errorMsg,
+          hint: 'Please ensure your PDF contains text (not just images) and is not corrupted or password-protected.'
+        },
+        { status: 422 }
+      );
     }
 
+    console.log('[Gemini] Preparing content sections...');
     const sections = chunkForPrompt(cleaned).slice(0, 6);
     const docContext = sections.map((chunk, idx) => `Section ${idx + 1}:\n${chunk}`).join('\n\n');
     const instructions = [
@@ -172,6 +183,7 @@ export async function POST(request: Request) {
       'Focus on medium/hard difficulty for college-level learners.',
     ].join(' ');
 
+    console.log('[Gemini] Initializing model gemini-2.5-flash...');
     let model;
     try {
       model = getGeminiModel('gemini-2.5-flash', {
@@ -181,42 +193,51 @@ export async function POST(request: Request) {
           temperature: 0.5,
         },
       });
+      console.log('[Gemini] Model initialized successfully');
     } catch (modelError) {
       const msg = modelError instanceof Error ? modelError.message : 'Failed to initialize Gemini model';
-      console.error('Gemini model init error', modelError);
+      console.error('[Gemini] Model init error:', modelError);
       return NextResponse.json({ error: 'Failed to initialize AI model', detail: msg }, { status: 500 });
     }
 
+    console.log('[Gemini] Sending generation request. Context length:', docContext.length);
     let result;
     try {
       const promptText = `${instructions}\nSource file: ${name}\n\n${docContext}`;
       result = await model.generateContent(promptText);
+      console.log('[Gemini] Content generated successfully');
     } catch (genError) {
       const msg = genError instanceof Error ? genError.message : 'Failed to generate content';
-      console.error('Gemini generateContent error', genError);
+      console.error('[Gemini] Generation error:', genError);
       return NextResponse.json({ error: 'Failed to generate quiz', detail: msg }, { status: 502 });
     }
 
     const rawText = result.response.text();
     if (!rawText) {
+      console.error('[Gemini] Empty response');
       return NextResponse.json({ error: 'Gemini returned an empty response' }, { status: 502 });
     }
 
+    console.log('[Gemini] Parsing AI response...');
     let aiPayload;
     try {
       aiPayload = JSON.parse(rawText);
+      console.log('[Gemini] Response parsed successfully');
     } catch (parseError) {
-      console.error('JSON parse error', parseError, 'Raw response:', rawText);
+      console.error('[Gemini] JSON parse error:', parseError, 'Raw response:', rawText.substring(0, 500));
       return NextResponse.json({ error: 'Failed to parse AI response', detail: 'Invalid JSON from Gemini' }, { status: 502 });
     }
+
     const questionSet = (Array.isArray(aiPayload?.quiz?.questions) ? aiPayload.quiz.questions : [])
       .map(buildQuestion)
       .filter(Boolean) as Question[];
 
     if (!questionSet.length) {
+      console.error('[Gemini] No questions generated');
       return NextResponse.json({ error: 'AI could not produce any questions' }, { status: 502 });
     }
 
+    console.log('[API] Success! Generated', questionSet.length, 'questions');
     return NextResponse.json({
       analysis: {
         summary: aiPayload.summary,
@@ -231,8 +252,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to analyze PDF';
-    console.error('from-pdf error', error);
+    console.error('[API] Top-level error:', error);
     return NextResponse.json({ error: 'Failed to analyze PDF', detail: message }, { status: 500 });
   }
 }
-
