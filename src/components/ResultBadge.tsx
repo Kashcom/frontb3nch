@@ -1,14 +1,38 @@
-transition = {{ repeat: Infinity, duration: 4 }}
-          >
-  { normalized } %
-          </motion.span >
-  <span className="absolute bottom-2 text-xs uppercase tracking-[0.3em] text-white/70">Score</span>
-        </motion.div >
-  <p className="text-sm text-white/70">Momentum badge · keeps glowing with your streaks</p>
-      </div >
-    </div >
+'use client';
+
+import { motion } from 'framer-motion';
+
+const ResultBadge = ({ score }: { score: number }) => {
+  let bgGradient = 'bg-gradient-pasture'; // Default: 60-79%
+  let label = 'Good progress';
+  let emoji = '🌿';
+
+  if (score >= 90) {
+    bgGradient = 'bg-gradient-star';
+    label = 'Star GOAT!';
+    emoji = '⭐';
+  } else if (score >= 80) {
+    bgGradient = 'bg-gradient-summit';
+    label = 'Summit reached!';
+    emoji = '🏔️';
+  } else if (score < 60) {
+    bgGradient = 'bg-slate-100';
+    label = 'Keep climbing';
+    emoji = '🐐';
+  }
+
+  return (
+    <motion.div
+      className={`flex flex-col items-center justify-center rounded-3xl ${bgGradient} p-8 shadow-xl`}
+      initial={{ opacity: 0, scale: 0.8 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.5 }}
+    >
+      <p className="text-6xl sm:text-7xl">{emoji}</p>
+      <p className="mt-4 text-xl font-bold text-white sm:text-2xl">{label}</p>
+      <p className="mt-2 text-sm text-white/90">You scored {score}%</p>
+    </motion.div>
   );
 };
 
 export default ResultBadge;
-

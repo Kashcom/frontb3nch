@@ -102,11 +102,15 @@ body {
 }
 
 .animate-burst {
-  animation: burst 0.3s ease;
+  animation: burst 0.6s ease-out forwards;
 }
 
 .animate-glint {
   animation: glint 2s ease-in-out infinite;
+}
+
+.animate-climb {
+  animation: climb 2s ease-in-out infinite;
 }
 
 .glow-card {
