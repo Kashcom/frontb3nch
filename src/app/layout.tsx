@@ -12,8 +12,8 @@ export const metadata: Metadata = { title: 'studyGoat' };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="bg-slate-50">
-      <body className={`${comic.variable} font-school min-h-screen bg-slate-50 text-slate-800 flex flex-col`}>
+    <html lang="en" className="bg-[#0a0a0a]">
+      <body className={`${comic.variable} font-school min-h-screen bg-[#0a0a0a] text-white flex flex-col`}>
         <Navbar />
         <PageTransition>
           <main className="flex-1">{children}</main>
