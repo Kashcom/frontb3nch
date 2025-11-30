@@ -33,6 +33,7 @@ const ResultPage = () => {
   const [reviewStatus, setReviewStatus] = useState<ReviewStatus>('idle');
   const [reviewError, setReviewError] = useState('');
   const [coachReview, setCoachReview] = useState<CoachReview | null>(null);
+  const [expandedCard, setExpandedCard] = useState<'recap' | 'stumbles' | 'insights' | null>(null);
 
   const redirectRef = useRef(false);
   useEffect(() => {
@@ -120,6 +121,10 @@ const ResultPage = () => {
     }
   };
 
+  const toggleCard = (card: 'recap' | 'stumbles' | 'insights') => {
+    setExpandedCard(expandedCard === card ? null : card);
+  };
+
   return (
     <motion.section
       className="bg-slate-50 px-4 py-14 sm:px-6 sm:py-16"
@@ -159,86 +164,99 @@ const ResultPage = () => {
           <ResultBadge score={percent} />
         </div>
         <div className="grid gap-8 lg:grid-cols-3">
-          <div className="rounded-3xl border border-dashed border-slate-200 bg-white/80 p-6 text-left shadow-inner sm:p-8">
+          <div
+            onClick={() => toggleCard('recap')}
+            className="cursor-pointer rounded-3xl border border-dashed border-slate-200 bg-white/80 p-6 text-left shadow-inner transition hover:shadow-lg sm:p-8 lg:cursor-default lg:hover:shadow-inner"
+          >
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Shareable recap</p>
-            <p className="mt-3 text-2xl font-bold text-slate-900">Spent {totalTimeLabel}</p>
-            <p className="mt-2 text-sm text-slate-600">
-              {score} of {questions.length} prompts solved · Mode: {mode ?? 'normal'}
-            </p>
-            <pre className="mt-4 whitespace-pre-wrap rounded-2xl bg-slate-900/90 p-4 text-left text-xs text-slate-100">{shareText}</pre>
-            <button
-              type="button"
-              onClick={handleShare}
-              className="mt-4 w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-slate-800"
-            >
-              {copied ? 'Copied!' : 'Share snapshot'}
-            </button>
+            <div className={`lg:block ${expandedCard === 'recap' || !expandedCard ? 'block' : 'hidden lg:block'}`}>
+              <p className="mt-3 text-2xl font-bold text-slate-900">Spent {totalTimeLabel}</p>
+              <p className="mt-2 text-sm text-slate-600">
+                {score} of {questions.length} prompts solved · Mode: {mode ?? 'normal'}
+              </p>
+              <pre className="mt-4 whitespace-pre-wrap rounded-2xl bg-slate-900/90 p-4 text-left text-xs text-slate-100">{shareText}</pre>
+              <button
+                type="button"
+                onClick={handleShare}
+                className="mt-4 w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-slate-800"
+              >
+                {copied ? 'Copied!' : 'Share snapshot'}
+              </button>
+            </div>
           </div>
-          <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-100 sm:p-8">
+          <div
+            onClick={() => toggleCard('stumbles')}
+            className="cursor-pointer rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-100 transition hover:shadow-2xl sm:p-8 lg:cursor-default lg:hover:shadow-xl">
             <p className="text-lg font-semibold text-slate-900 sm:text-xl">Review your stumbles</p>
-            {wrongQs.length === 0 ? (
-              <p className="mt-4 text-sm text-slate-600 sm:text-base">Flawless victory! No wrong answers recorded.</p>
-            ) : (
-              <ul className="mt-4 max-h-[400px] space-y-4 overflow-y-auto pr-2 scrollbar-thin">
-                {wrongQs.map((item, idx) => (
-                  <li key={`${item.q}-${idx}`} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                    <p className="font-semibold text-slate-800">{item.q}</p>
-                    {item.user && (
-                      <p className="text-sm text-rose-500">
-                        Your pick: <span className="font-semibold">{item.user}</span>
+            <div className={`lg:block ${expandedCard === 'stumbles' || !expandedCard ? 'block' : 'hidden lg:block'}`}>
+              {wrongQs.length === 0 ? (
+                <p className="mt-4 text-sm text-slate-600 sm:text-base">Flawless victory! No wrong answers recorded.</p>
+              ) : (
+                <ul className="mt-4 max-h-[400px] space-y-4 overflow-y-auto pr-2 scrollbar-thin">
+                  {wrongQs.map((item, idx) => (
+                    <li key={`${item.q}-${idx}`} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                      <p className="font-semibold text-slate-800">{item.q}</p>
+                      {item.user && (
+                        <p className="text-sm text-rose-500">
+                          Your pick: <span className="font-semibold">{item.user}</span>
+                        </p>
+                      )}
+                      <p className="text-sm text-slate-500">
+                        Correct answer: <span className="font-semibold text-primary">{item.correct}</span>
                       </p>
-                    )}
-                    <p className="text-sm text-slate-500">
-                      Correct answer: <span className="font-semibold text-primary">{item.correct}</span>
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
-          <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-xl sm:p-8">
+          <div
+            onClick={() => toggleCard('insights')}
+            className="cursor-pointer rounded-3xl border border-slate-100 bg-white p-6 shadow-xl transition hover:shadow-2xl sm:p-8 lg:cursor-default lg:hover:shadow-xl">
             <p className="text-lg font-semibold text-slate-900 sm:text-xl">AI review & insights</p>
-            <div className="max-h-[400px] overflow-y-auto pr-2 scrollbar-thin">
-              {coachReview && (
-                <div className="mt-3 space-y-3 text-sm text-slate-600">
-                  <p className="text-base font-semibold text-primary">{coachReview.headline}</p>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-500">Strengths</p>
-                    <ul className="mt-1 list-disc space-y-1 pl-4">
-                      {coachReview.strengths.map((item) => (
-                        <li key={`strength-${item}`}>{item}</li>
-                      ))}
-                    </ul>
+            <div className={`lg:block ${expandedCard === 'insights' || !expandedCard ? 'block' : 'hidden lg:block'}`}>
+              <div className="max-h-[400px] overflow-y-auto pr-2 scrollbar-thin">
+                {coachReview && (
+                  <div className="mt-3 space-y-3 text-sm text-slate-600">
+                    <p className="text-base font-semibold text-primary">{coachReview.headline}</p>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-500">Strengths</p>
+                      <ul className="mt-1 list-disc space-y-1 pl-4">
+                        {coachReview.strengths.map((item) => (
+                          <li key={`strength-${item}`}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-500">Focus next</p>
+                      <ul className="mt-1 list-disc space-y-1 pl-4">
+                        {coachReview.focus.map((item) => (
+                          <li key={`focus-${item}`}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Next actions</p>
+                      <ul className="mt-1 list-disc space-y-1 pl-4">
+                        {coachReview.actions.map((item) => (
+                          <li key={`action-${item}`}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-500">Focus next</p>
-                    <ul className="mt-1 list-disc space-y-1 pl-4">
-                      {coachReview.focus.map((item) => (
-                        <li key={`focus-${item}`}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Next actions</p>
-                    <ul className="mt-1 list-disc space-y-1 pl-4">
-                      {coachReview.actions.map((item) => (
-                        <li key={`action-${item}`}>{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              )}
-              {reviewStatus === 'loading' && <p className="mt-4 text-sm text-slate-500">Asking Gemini for coaching tips…</p>}
-              {reviewError && <p className="mt-4 text-sm text-rose-500">{reviewError}</p>}
-              {!coachReview && reviewStatus === 'ready' && !reviewError && (
-                <p className="mt-4 text-sm text-slate-500">No AI insights available yet.</p>
-              )}
-              {summaryForAi && (
-                <details className="mt-6 rounded-2xl border border-slate-100 bg-slate-50/80 p-4 text-left text-sm text-slate-600">
-                  <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">PDF summary</summary>
-                  <p className="mt-2">{summaryForAi}</p>
-                </details>
-              )}
+                )}
+                {reviewStatus === 'loading' && <p className="mt-4 text-sm text-slate-500">Asking Gemini for coaching tips…</p>}
+                {reviewError && <p className="mt-4 text-sm text-rose-500">{reviewError}</p>}
+                {!coachReview && reviewStatus === 'ready' && !reviewError && (
+                  <p className="mt-4 text-sm text-slate-500">No AI insights available yet.</p>
+                )}
+                {summaryForAi && (
+                  <details className="mt-6 rounded-2xl border border-slate-100 bg-slate-50/80 p-4 text-left text-sm text-slate-600">
+                    <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">PDF summary</summary>
+                    <p className="mt-2">{summaryForAi}</p>
+                  </details>
+                )}
+              </div>
             </div>
           </div>
         </div>

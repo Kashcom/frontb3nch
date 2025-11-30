@@ -2,7 +2,7 @@ import type { GameMode } from './questions';
 
 const modeDurations: Record<GameMode, number | null> = {
   normal: null,
-  timed: 45,
+  timed: 20,
 };
 
 export const getDurationForMode = (mode: GameMode | null) => (mode ? modeDurations[mode] : null);

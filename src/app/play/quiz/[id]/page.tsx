@@ -114,17 +114,22 @@ const QuizPage = () => {
             Free play mode · no countdown
           </div>
         )}
-        <QuestionCard
-          item={question}
-          index={index}
-          total={questions.length}
-          selected={selected}
-          revealCorrect={revealCorrect}
-          onSelect={handleChoice}
-        />
-        <div className="flex justify-center">
-          {feedback === 'correct' && <LottieCorrect />}
-          {feedback === 'wrong' && <LottieWrong />}
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+          <div className="flex-1">
+            <QuestionCard
+              item={question}
+              index={index}
+              total={questions.length}
+              selected={selected}
+              revealCorrect={revealCorrect}
+              onSelect={handleChoice}
+              feedback={feedback}
+            />
+          </div>
+          <div className="hidden sm:flex sm:w-32 sm:flex-col sm:items-center sm:justify-center">
+            {feedback === 'correct' && <LottieCorrect />}
+            {feedback === 'wrong' && <LottieWrong />}
+          </div>
         </div>
       </div>
     </motion.section>

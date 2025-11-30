@@ -184,6 +184,21 @@ const DifficultyContent = () => {
             <p className="mt-1 text-sm text-amber-600">Deck not found. Please head back to the library.</p>
           )}
         </header>
+        <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
+          {modes.map((option) => (
+            <button
+              key={option.key}
+              type="button"
+              onClick={() => handleSelect(option.key)}
+              disabled={disableCustomSelection}
+              className="flex flex-col rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-md hover:border-primary disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              <p className="text-2xl font-bold text-slate-900">{option.label}</p>
+              <p className="mt-3 text-slate-600">{option.description}</p>
+              <span className="mt-6 text-sm font-semibold text-primary">Start →</span>
+            </button>
+          ))}
+        </div>
         {quizId === 'upload' && upload && (
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
             {builderState.status === 'loading' && (
@@ -215,21 +230,6 @@ const DifficultyContent = () => {
             )}
           </div>
         )}
-        <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
-          {modes.map((option) => (
-            <button
-              key={option.key}
-              type="button"
-              onClick={() => handleSelect(option.key)}
-              disabled={disableCustomSelection}
-              className="flex flex-col rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-md hover:border-primary disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              <p className="text-2xl font-bold text-slate-900">{option.label}</p>
-              <p className="mt-3 text-slate-600">{option.description}</p>
-              <span className="mt-6 text-sm font-semibold text-primary">Start →</span>
-            </button>
-          ))}
-        </div>
       </div>
     </motion.section>
   );

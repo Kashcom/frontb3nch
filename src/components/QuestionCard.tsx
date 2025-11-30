@@ -11,9 +11,10 @@ interface QuestionCardProps {
   selected: string | null;
   revealCorrect: boolean;
   onSelect: (choice: string) => void;
+  feedback?: 'correct' | 'wrong' | null;
 }
 
-const QuestionCard = ({ item, index, total, selected, revealCorrect, onSelect }: QuestionCardProps) => (
+const QuestionCard = ({ item, index, total, selected, revealCorrect, onSelect, feedback }: QuestionCardProps) => (
   <motion.div
     className="rounded-3xl bg-white p-5 shadow-xl ring-1 ring-slate-100 sm:p-8"
     initial={{ opacity: 0, x: 40 }}
@@ -23,7 +24,15 @@ const QuestionCard = ({ item, index, total, selected, revealCorrect, onSelect }:
     <p className="text-sm font-semibold uppercase tracking-wide text-emerald-600">
       Question {index + 1} of {total} · {item.difficulty}
     </p>
-    <h2 className="mt-4 text-2xl font-bold text-slate-900 sm:text-3xl">{item.q}</h2>
+    <div className="mt-4 flex items-start justify-between gap-4">
+      <h2 className="flex-1 text-2xl font-bold text-slate-900 sm:text-3xl">{item.q}</h2>
+      {feedback && (
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center sm:hidden">
+          {feedback === 'correct' && <span className="text-3xl">✓</span>}
+          {feedback === 'wrong' && <span className="text-3xl">✗</span>}
+        </div>
+      )}
+    </div>
     <p className="mt-2 text-xs uppercase text-slate-500 sm:text-sm">{item.category}</p>
 
     <div className="mt-6 space-y-3 sm:mt-8 sm:space-y-4">
