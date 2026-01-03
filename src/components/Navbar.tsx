@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 const Navbar = () => (
-  <header className="sticky top-0 z-50 border-b border-dark-border bg-dark-card/90 backdrop-blur">
+  <header className="sticky top-0 z-50 border-b border-dark-border bg-black/50 backdrop-blur-md">
     <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
       <Link href="/" className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-2xl border border-white/10">

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 
 const Hero = () => (
-  <section className="mx-auto flex max-w-6xl flex-col items-center gap-8 bg-dark-bg px-4 py-12 text-center sm:gap-12 sm:px-6 sm:py-14 md:flex-row md:py-20 md:text-left">
+  <section className="mx-auto flex max-w-6xl flex-col items-center gap-8 px-4 py-12 text-center sm:gap-12 sm:px-6 sm:py-14 md:flex-row md:py-20 md:text-left">
     <motion.div
       className="flex-1 space-y-6"
       initial={{ opacity: 0, y: 40 }}
