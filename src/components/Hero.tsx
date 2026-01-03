@@ -2,6 +2,12 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import dynamic from 'next/dynamic';
+
+const Spline = dynamic(() => import('@splinetool/react-spline'), {
+  loading: () => <div className="flex h-full w-full items-center justify-center text-gray-400">Loading 3D...</div>,
+  ssr: false,
+});
 
 const Hero = () => (
   <section className="mx-auto flex max-w-6xl flex-col items-center gap-8 px-4 py-12 text-center sm:gap-12 sm:px-6 sm:py-14 md:flex-row md:py-20 md:text-left">
@@ -33,15 +39,23 @@ const Hero = () => (
       </div>
     </motion.div>
     <motion.div
-      className="w-full max-w-md md:w-1/2"
+      className="w-full max-w-md md:w-1/2 h-[400px] md:h-[500px] relative"
       initial={{ opacity: 0, x: 40 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.6, delay: 0.2 }}
     >
-      <div className="flex aspect-square items-center justify-center rounded-3xl border border-dark-border bg-dark-card p-8 shadow-2xl relative overflow-hidden group">
-        <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-        <span className="text-9xl transform group-hover:scale-110 transition-transform duration-500">🔰</span>
+      {/* 
+        TODO: Replace the scene URL below with your custom "Retro Game Machine" Spline URL.
+        1. Go to spline.design
+        2. Create/Import your 3D model
+        3. Export -> Code -> Copy the URL (ending in .splinecode)
+      */}
+      <div className="w-full h-full relative z-10">
+        <Spline scene="https://prod.spline.design/6Wq1Q7YGyM-iab9i/scene.splinecode" />
       </div>
+
+      {/* Decorative gradient behind the 3D element */}
+      <div className="absolute inset-0 bg-gradient-to-tr from-purple-500/20 to-blue-500/0 blur-[100px] -z-10 rounded-full opacity-50" />
     </motion.div>
   </section>
 );
