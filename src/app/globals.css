@@ -5,11 +5,13 @@
 :root {
   color-scheme: dark;
 
-  /* Simplified color scheme - single color gradients */
+  /* Monochrome color scheme */
   --bg-dark: #0a0a0a;
   --bg-card: #1a1a1a;
   --text-primary: #ffffff;
   --text-secondary: #a0a0a0;
+
+  /* Functional colors - kept for outputs/feedback */
   --accent-gold: #D4AF37;
   --accent-green: #7CB342;
   --accent-purple: #9B59B6;
@@ -35,11 +37,11 @@ body::before {
   background: linear-gradient(135deg,
       #0a0a0a 0%,
       #1a1a1a 25%,
-      rgba(212, 175, 55, 0.05) 50%,
-      rgba(124, 179, 66, 0.05) 75%,
+      #222222 50%,
+      #1a1a1a 75%,
       #0a0a0a 100%);
   background-size: 400% 400%;
-  animation: gradientShift 15s ease infinite;
+  animation: gradientShift 20s ease infinite;
   z-index: -1;
   pointer-events: none;
 }
@@ -56,112 +58,8 @@ body::before {
   }
 }
 
-.font-school {
-  font-family: var(--font-school, "Comic Neue", cursive) !important;
-}
-
-@keyframes shake {
-  0% {
-    transform: translateX(0);
-  }
-
-  25% {
-    transform: translateX(4px);
-  }
-
-  50% {
-    transform: translateX(0);
-  }
-
-  75% {
-    transform: translateX(4px);
-  }
-
-  100% {
-    transform: translateX(0);
-  }
-}
-
-@keyframes burst {
-  0% {
-    transform: scale(1);
-    box-shadow: 0 0 0 rgba(250, 204, 21, 0);
-  }
-
-  50% {
-    transform: scale(1.2);
-    box-shadow: 0 0 20px rgba(250, 204, 21, 0.8);
-  }
-
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 rgba(250, 204, 21, 0);
-  }
-}
-
-@keyframes glint {
-
-  0%,
-  100% {
-    text-shadow: 0 0 4px rgba(249, 115, 22, 0.3);
-  }
-
-  50% {
-    text-shadow: 0 0 12px rgba(249, 115, 22, 0.8),
-      0 0 20px rgba(249, 115, 22, 0.4);
-  }
-}
-
-@keyframes climb {
-  0% {
-    transform: translateY(0) scale(1);
-  }
-
-  50% {
-    transform: translateY(-4px) scale(1.05);
-  }
-
-  100% {
-    transform: translateY(0) scale(1);
-  }
-}
-
-.animate-shake {
-  animation: shake 0.4s ease;
-}
-
-.animate-burst {
-  animation: burst 0.6s ease-out forwards;
-}
-
-.animate-glint {
-  animation: glint 2s ease-in-out infinite;
-}
-
-.animate-climb {
-  animation: climb 2s ease-in-out infinite;
-}
-
-.animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
-}
-
-@keyframes pulse-glow {
-
-  0%,
-  100% {
-    box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
-    transform: scale(1);
-  }
-
-  50% {
-    box-shadow: 0 0 40px rgba(212, 175, 55, 0.6);
-    transform: scale(1.02);
-  }
-}
-
 .glow-card {
-  box-shadow: 0 10px 40px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 10px 40px rgba(255, 255, 255, 0.05);
 }
 
 .quiz-grid {
@@ -184,7 +82,7 @@ body::before {
 /* Custom scrollbar styling */
 .scrollbar-thin {
   scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 #f8fafc;
+  scrollbar-color: #333 #1a1a1a;
 }
 
 .scrollbar-thin::-webkit-scrollbar {
@@ -192,18 +90,18 @@ body::before {
 }
 
 .scrollbar-thin::-webkit-scrollbar-track {
-  background: #f8fafc;
+  background: #1a1a1a;
   border-radius: 4px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #333;
   border-radius: 4px;
   transition: background 0.2s;
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #444;
 }
 
 /* Smooth scrolling */

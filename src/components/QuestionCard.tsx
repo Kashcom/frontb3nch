@@ -28,7 +28,7 @@ const QuestionCard = ({ item, index, total, selected, revealCorrect, onSelect, f
       <h2 className="flex-1 text-2xl font-bold text-white sm:text-3xl">{item.q}</h2>
       {feedback && (
         <div className="flex h-10 w-10 shrink-0 items-center justify-center sm:hidden">
-          {feedback === 'correct' && <span className="text-3xl text-accent">✓</span>}
+          {feedback === 'correct' && <span className="text-3xl text-primary">✓</span>}
           {feedback === 'wrong' && <span className="text-3xl text-red-400">✗</span>}
         </div>
       )}

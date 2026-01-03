@@ -10,10 +10,10 @@ import { useStore } from '@/lib/store';
 type PipelineStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 const modes: { key: GameMode; label: string; description: string; detail: string }[] = [
-  { key: 'normal', label: 'Normal', description: 'No countdown, just medium-hard prompts.', detail: 'Perfect for deep work or study groups.' },
+  { key: 'normal', label: 'Focus Mode', description: 'No countdown, just medium-hard prompts.', detail: 'Perfect for deep work or study groups.' },
   {
     key: 'timed',
-    label: 'Timed Quiz',
+    label: 'Blitz Mode',
     description: '45s global timer with streak bonuses.',
     detail: 'Best for quick tournament-style sessions.',
   },
@@ -46,79 +46,41 @@ const DifficultyContent = () => {
   const triggerPipeline = useCallback(async () => {
     if (!upload) return;
     setBuilderError('');
-    setBuilderState({ status: 'loading', message: 'Starting PDF processing...' });
-
+    setBuilderState({ status: 'loading', message: 'Crunching PDF pages and drafting prompts…' });
     try {
       const response = await fetch('/api/quiz/from-pdf', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'text/event-stream',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ dataUrl: upload.dataUrl, name: upload.name, size: upload.size }),
       });
-
+      const contentType = response.headers.get('content-type') ?? '';
+      let payload: any = null;
+      let fallbackText = '';
+      if (contentType.includes('application/json')) {
+        payload = await response.json();
+      } else {
+        fallbackText = await response.text();
+      }
       if (!response.ok) {
-        throw new Error(`Request failed (${response.status})`);
+        throw new Error((payload?.error ?? fallbackText) || `Request failed (${response.status})`);
       }
-
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (!reader) {
-        throw new Error('No response stream available');
-      }
-
-      let buffer = '';
-      let finalAnalysis: any = null;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (!line.trim() || !line.startsWith('data: ')) continue;
-
+      if (!payload) {
+        if (fallbackText) {
           try {
-            const data = JSON.parse(line.substring(6));
-
-            if (data.stage === 'error') {
-              throw new Error(data.message || 'Processing failed');
-            }
-
-            if (data.stage === 'result') {
-              finalAnalysis = data.data.analysis;
-              continue;
-            }
-
-            // Update progress message based on stage
-            setBuilderState({
-              status: 'loading',
-              message: data.message || 'Processing...',
-            });
-
-          } catch (parseError) {
-            console.error('Failed to parse SSE message:', parseError);
+            payload = JSON.parse(fallbackText);
+          } catch {
+            throw new Error('Quiz builder returned an unexpected payload format');
           }
+        } else {
+          throw new Error('Quiz builder returned an empty response');
         }
       }
-
-      if (finalAnalysis) {
-        actions.setAnalysis(finalAnalysis);
-        setBuilderState({
-          status: 'ready',
-          message: `Built ${finalAnalysis.questionSet?.length ?? 0} tailored questions`,
-        });
-      } else {
-        throw new Error('No analysis data received');
-      }
-
+      actions.setAnalysis(payload.analysis);
+      setBuilderState({
+        status: 'ready',
+        message: `Built ${payload.analysis?.questionSet?.length ?? 0} tailored questions`,
+      });
     } catch (error) {
-      console.error('Pipeline error:', error);
       setBuilderState({ status: 'error', message: 'AI pipeline failed. Please try again.' });
       setBuilderError(error instanceof Error ? error.message : 'Unknown error');
     }
@@ -164,10 +126,27 @@ const DifficultyContent = () => {
   };
 
   const disableCustomSelection = quizId === 'upload' && builderState.status !== 'ready';
+  const pipelineSteps: { label: string; status: PipelineStatus }[] = [
+    { label: 'Upload', status: upload ? 'ready' : 'idle' },
+    { label: 'Analyze', status: builderState.status === 'loading' ? 'loading' : builderState.status },
+    { label: 'Quiz ready', status: analysis?.questionSet?.length ? 'ready' : builderState.status },
+  ];
+  const progressPercent =
+    builderState.status === 'ready'
+      ? 100
+      : builderState.status === 'loading'
+        ? 70
+        : builderState.status === 'error'
+          ? 100
+          : upload
+            ? 35
+            : 0;
+  const progressBarColor =
+    builderState.status === 'error' ? 'bg-rose-500' : builderState.status === 'ready' ? 'bg-emerald-500' : 'bg-primary';
 
   return (
     <motion.section
-      className="min-h-screen bg-dark-bg px-4 py-14 sm:px-6 sm:py-16"
+      className="bg-slate-50 px-4 py-14 sm:px-6 sm:py-16"
       initial={{ opacity: 0, x: 40 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3 }}
@@ -175,15 +154,73 @@ const DifficultyContent = () => {
       <h1 className="sr-only">Select game mode</h1>
       <div className="mx-auto max-w-5xl space-y-10 text-center">
         <header>
-          <p className="text-3xl font-bold text-white sm:text-4xl">Choose your mode</p>
-          <p className="mt-3 text-base text-gray-400 sm:text-lg">{subtitle}</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary sm:text-sm">Choose mode</p>
+          <p className="mt-2 text-3xl font-bold text-slate-900 sm:text-4xl">How do you want to play?</p>
+          <p className="mt-3 text-base text-slate-600 sm:text-lg">{subtitle}</p>
           {!deck && quizId === 'upload' && upload && (
-            <p className="mt-1 text-xs uppercase tracking-[0.2em] text-gray-500">PDF size: {(upload.size / 1024 / 1024).toFixed(2)} MB</p>
+            <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">PDF size: {(upload.size / 1024 / 1024).toFixed(2)} MB</p>
           )}
           {!deck && quizId !== 'upload' && (
-            <p className="mt-1 text-sm text-amber-400">Deck not found. Please head back to the library.</p>
+            <p className="mt-1 text-sm text-amber-600">Deck not found. Please head back to the library.</p>
           )}
         </header>
+        {quizId === 'upload' && upload && (
+          <div className="grid gap-4 rounded-3xl border border-dashed border-slate-200 bg-white/80 p-6 text-left shadow-inner sm:grid-cols-2 sm:p-8">
+            <div className="space-y-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">PDF pipeline</p>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {pipelineSteps.map((step) => (
+                  <div
+                    key={step.label}
+                    className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
+                      step.status === 'ready'
+                        ? 'border-emerald-100 bg-emerald-50 text-emerald-800'
+                        : step.status === 'loading'
+                          ? 'border-amber-100 bg-amber-50 text-amber-800 animate-pulse'
+                          : 'border-slate-200 text-slate-500'
+                    }`}
+                  >
+                    {step.label}
+                  </div>
+                ))}
+              </div>
+              <div className="mt-2">
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                  <div
+                    className={`${progressBarColor} h-full rounded-full transition-all duration-500`}
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+              </div>
+              <p className="text-sm text-slate-600">{builderState.message}</p>
+              {builderError && <p className="text-sm text-rose-500">{builderError}</p>}
+              <button
+                type="button"
+                onClick={() => triggerPipeline()}
+                disabled={builderState.status === 'loading'}
+                className="inline-flex items-center rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {builderState.status === 'loading' ? 'Generating…' : 'Regenerate quiz'}
+              </button>
+            </div>
+            <div className="rounded-2xl bg-slate-900/90 p-5 text-white shadow-lg">
+              <p className="text-xs font-semibold uppercase tracking-[0.4em] text-emerald-200">AI brief</p>
+              <p className="mt-3 text-lg font-semibold">{analysis?.summary ?? 'We are prepping a study brief based on your PDF.'}</p>
+              {analysis?.highlights && (
+                <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-emerald-100">
+                  {analysis.highlights.slice(0, 3).map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              )}
+              <p className="mt-4 text-xs text-emerald-200">
+                {analysis?.questionSet?.length
+                  ? `${analysis.questionSet.length} custom questions ready`
+                  : 'We will auto-build 8+ questions once analysis finishes.'}
+              </p>
+            </div>
+          </div>
+        )}
         <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
           {modes.map((option) => (
             <button
@@ -191,49 +228,15 @@ const DifficultyContent = () => {
               type="button"
               onClick={() => handleSelect(option.key)}
               disabled={disableCustomSelection}
-              className="flex flex-col rounded-3xl border-2 border-dark-border bg-dark-card p-6 text-left shadow-sm transition hover:-translate-y-1 hover:border-accent hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-70">
-              <p className="text-2xl font-bold text-white">{option.label}</p>
-              <p className="mt-3 text-gray-400">{option.description}</p>
-              <span className="mt-6 text-sm font-semibold text-accent">Start →</span>
+              className="flex flex-col rounded-3xl border border-slate-100 bg-white p-5 text-left shadow-lg transition hover:-translate-y-1 hover:border-primary disabled:cursor-not-allowed disabled:opacity-70 sm:p-6"
+            >
+              <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-400">{option.label}</p>
+              <p className="mt-3 text-2xl font-bold text-slate-900 sm:mt-4 sm:text-3xl">{option.description}</p>
+              <p className="mt-2 flex-1 text-slate-600 sm:mt-3">{option.detail}</p>
+              <span className="mt-4 text-sm font-semibold text-primary sm:mt-6">Select →</span>
             </button>
           ))}
         </div>
-        {quizId === 'upload' && upload && (
-          <div className="rounded-3xl border border-dark-border bg-dark-card p-6 shadow-sm sm:p-8">
-            {builderState.status === 'loading' && (
-              <div className="space-y-4 text-center">
-                <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-accent border-t-transparent" />
-                <p className="text-base font-semibold text-white sm:text-lg">{builderState.message}</p>
-                <p className="text-sm text-slate-500">Please wait while we process your PDF...</p>
-              </div>
-            )}
-            {builderState.status === 'ready' && analysis && (
-              <div className="space-y-4 text-center">
-                <p className="text-2xl text-emerald-400">✓</p>
-                <p className="text-base font-semibold text-white sm:text-lg">{builderState.message}</p>
-                <button
-                  type="button"
-                  onClick={() => router.push(`/play/quiz/${quizId}`)}
-                  className="mx-auto rounded-full bg-gradient-gold px-6 py-3 text-sm font-semibold text-dark-bg shadow-lg transition hover:opacity-90"
-                >
-                  Start Quiz
-                </button>
-              </div>
-            )}
-            {builderState.status === 'error' && (
-              <div className="space-y-3">
-                <p className="text-sm text-rose-600">{builderError}</p>
-                <button
-                  type="button"
-                  onClick={() => triggerPipeline()}
-                  className="rounded-full bg-primary px-6 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
-                >
-                  Try again
-                </button>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </motion.section>
   );

@@ -1,11 +1,43 @@
 import { NextResponse } from 'next/server';
 import { SchemaType, type Schema } from '@google/generative-ai';
 import { z } from 'zod';
-import { getGeminiKey } from '@/lib/ai';
-import { dataUrlToBuffer } from '@/lib/pdf';
+import { getGeminiModel } from '@/lib/ai';
+import { chunkForPrompt, dataUrlToBuffer, sanitizePdfText } from '@/lib/pdf';
 import type { Question } from '@/lib/questions';
+import { parsePdfWithLlama } from '@/lib/llamaparse';
 
 export const runtime = 'nodejs';
+
+type PdfParseFn = (dataBuffer: Buffer) => Promise<{ text: string }>;
+
+type PdfParseModule = {
+  default?: PdfParseFn;
+  PDFParse?: new (options: { data: Buffer }) => { getText: () => Promise<{ text: string }> };
+};
+
+let cachedPdfParseFn: PdfParseFn | null = null;
+const loadPdfParse = async (): Promise<PdfParseFn> => {
+  if (cachedPdfParseFn) return cachedPdfParseFn;
+  const mod = (await import('pdf-parse')) as PdfParseModule | PdfParseFn;
+  if (typeof mod === 'function') {
+    cachedPdfParseFn = mod as PdfParseFn;
+    return cachedPdfParseFn;
+  }
+  if (typeof (mod as PdfParseModule)?.default === 'function') {
+    cachedPdfParseFn = (mod as PdfParseModule).default as PdfParseFn;
+    return cachedPdfParseFn;
+  }
+  if (typeof (mod as PdfParseModule)?.PDFParse === 'function') {
+    cachedPdfParseFn = async (dataBuffer: Buffer) => {
+      const ParserCtor = (mod as PdfParseModule).PDFParse!;
+      const parser = new ParserCtor({ data: dataBuffer });
+      const payload = await parser.getText();
+      return typeof payload === 'string' ? { text: payload } : payload;
+    };
+    return cachedPdfParseFn;
+  }
+  throw new Error('pdf-parse module did not expose a parser entry point');
+};
 
 const requestSchema = z.object({
   dataUrl: z.string().min(1),
@@ -87,342 +119,93 @@ const buildQuestion = (item: { question: string; answer: string; distractors: st
   };
 };
 
-// Helper to send SSE message
-function sendSSE(controller: ReadableStreamDefaultController, data: { stage: string; progress: number; message: string }) {
-  const message = `data: ${JSON.stringify(data)}\n\n`;
-  controller.enqueue(new TextEncoder().encode(message));
-}
-
 export async function POST(request: Request) {
-  // Check if client wants SSE
-  const acceptHeader = request.headers.get('accept') || '';
-  const wantsSSE = acceptHeader.includes('text/event-stream');
-
-  if (wantsSSE) {
-    // Return SSE stream
-    const stream = new ReadableStream({
-      async start(controller) {
-        try {
-          console.log('[API SSE] Starting PDF processing stream');
-          const json = await request.json();
-          const parsed = requestSchema.safeParse(json);
-
-          if (!parsed.success) {
-            sendSSE(controller, { stage: 'error', progress: 0, message: 'Invalid request payload' });
-            controller.close();
-            return;
-          }
-
-          const { dataUrl, name } = parsed.data;
-
-          sendSSE(controller, { stage: 'uploading', progress: 10, message: `Preparing ${name}...` });
-
-          const buffer = dataUrlToBuffer(dataUrl);
-          console.log('[API SSE] PDF loaded:', name, 'Size:', (buffer.length / 1024 / 1024).toFixed(2), 'MB');
-
-          if (buffer.length > 15 * 1024 * 1024) {
-            sendSSE(controller, { stage: 'error', progress: 0, message: 'File exceeds 15MB limit' });
-            controller.close();
-            return;
-          }
-
-          sendSSE(controller, { stage: 'parsing', progress: 25, message: 'Uploading to Gemini Files API...' });
-
-          // Upload to Gemini Files API
-          let fileUri = '';
-          try {
-            const { GoogleAIFileManager } = await import('@google/generative-ai/server');
-            const fileManager = new GoogleAIFileManager(getGeminiKey());
-            const { writeFile, unlink } = await import('fs/promises');
-            const { join } = await import('path');
-            const { tmpdir } = await import('os');
-
-            const tempPath = join(tmpdir(), `upload-${Date.now()}-${name}`);
-            await writeFile(tempPath, buffer);
-
-            sendSSE(controller, { stage: 'parsing', progress: 35, message: 'Parsing PDF content...' });
-
-            const uploadResult = await fileManager.uploadFile(tempPath, {
-              mimeType: 'application/pdf',
-              displayName: name,
-            });
-
-            fileUri = uploadResult.file.uri;
-            console.log('[API SSE] Upload successful. URI:', fileUri);
-            await unlink(tempPath);
-
-          } catch (uploadError) {
-            console.error('[API SSE] Upload failed:', uploadError);
-            sendSSE(controller, {
-              stage: 'error',
-              progress: 0,
-              message: uploadError instanceof Error ? uploadError.message : 'Failed to upload PDF'
-            });
-            controller.close();
-            return;
-          }
-
-          sendSSE(controller, { stage: 'analyzing', progress: 50, message: 'Analyzing content with AI...' });
-
-          // Initialize Gemini
-          let model;
-          try {
-            const { GoogleGenerativeAI } = await import('@google/generative-ai');
-            const genAI = new GoogleGenerativeAI(getGeminiKey());
-            model = genAI.getGenerativeModel({
-              model: 'gemini-2.5-flash',
-              generationConfig: {
-                responseMimeType: 'application/json',
-                responseSchema: analysisSchema,
-                temperature: 0.5,
-              },
-            });
-          } catch (modelError) {
-            sendSSE(controller, {
-              stage: 'error',
-              progress: 0,
-              message: modelError instanceof Error ? modelError.message : 'Failed to initialize AI model'
-            });
-            controller.close();
-            return;
-          }
-
-          sendSSE(controller, { stage: 'generating', progress: 70, message: 'Generating quiz questions...' });
-
-          const instructions = [
-            'You are parhaiGoat, a study quiz builder.',
-            'Analyze the supplied PDF content and craft a JSON response that matches the provided schema.',
-            'Questions should stay faithful to the facts, be concise (<260 chars), and include novel distractors.',
-            'Focus on medium/hard difficulty for college-level learners.',
-            'Extract key concepts from the PDF and create 8-12 challenging questions.',
-          ].join(' ');
-
-          let result;
-          try {
-            result = await model.generateContent([
-              {
-                fileData: {
-                  mimeType: 'application/pdf',
-                  fileUri: fileUri,
-                },
-              },
-              { text: instructions },
-            ]);
-          } catch (genError) {
-            sendSSE(controller, {
-              stage: 'error',
-              progress: 0,
-              message: genError instanceof Error ? genError.message : 'Failed to generate quiz'
-            });
-            controller.close();
-            return;
-          }
-
-          sendSSE(controller, { stage: 'generating', progress: 90, message: 'Finalizing questions...' });
-
-          const rawText = result.response.text();
-          if (!rawText) {
-            sendSSE(controller, { stage: 'error', progress: 0, message: 'AI returned empty response' });
-            controller.close();
-            return;
-          }
-
-          let aiPayload;
-          try {
-            aiPayload = JSON.parse(rawText);
-          } catch (parseError) {
-            sendSSE(controller, { stage: 'error', progress: 0, message: 'Failed to parse AI response' });
-            controller.close();
-            return;
-          }
-
-          const questionSet = (Array.isArray(aiPayload?.quiz?.questions) ? aiPayload.quiz.questions : [])
-            .map(buildQuestion)
-            .filter(Boolean) as Question[];
-
-          if (!questionSet.length) {
-            sendSSE(controller, { stage: 'error', progress: 0, message: 'No questions generated' });
-            controller.close();
-            return;
-          }
-
-          const sections = aiPayload.sections?.map((s: any) => s.insight || s.title).filter(Boolean) || [];
-
-          sendSSE(controller, {
-            stage: 'complete',
-            progress: 100,
-            message: `Created ${questionSet.length} questions!`
-          });
-
-          // Send final result
-          const finalData = {
-            analysis: {
-              summary: aiPayload.summary,
-              highlights: aiPayload.highlights ?? [],
-              sections: aiPayload.sections ?? [],
-              recommendations: aiPayload.recommendations ?? [],
-              context: aiPayload.teaching_notes ?? sections.join('\n'),
-              sourceName: name,
-              questionSet,
-              generatedAt: Date.now(),
-            },
-          };
-
-          controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ stage: 'result', data: finalData })}\n\n`));
-          controller.close();
-
-        } catch (error) {
-          console.error('[API SSE] Error:', error);
-          sendSSE(controller, {
-            stage: 'error',
-            progress: 0,
-            message: error instanceof Error ? error.message : 'Unknown error'
-          });
-          controller.close();
-        }
-      },
-    });
-
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      },
-    });
-  }
-
-  // Fallback to original non-streaming endpoint
   try {
-    console.log('[API] Received PDF quiz generation request');
     const json = await request.json();
     const parsed = requestSchema.safeParse(json);
     if (!parsed.success) {
-      console.error('[API] Invalid payload:', parsed.error);
       return NextResponse.json({ error: 'Invalid payload', issues: parsed.error.flatten() }, { status: 400 });
     }
     const { dataUrl, name } = parsed.data;
     const buffer = dataUrlToBuffer(dataUrl);
-    console.log('[API] PDF loaded:', name, 'Size:', (buffer.length / 1024 / 1024).toFixed(2), 'MB');
-
     if (buffer.length > 15 * 1024 * 1024) {
       return NextResponse.json({ error: 'File exceeds 15MB limit' }, { status: 413 });
     }
-
-    let fileUri = '';
-
+    // Use pdf-parse as primary (faster, more reliable), LlamaParse as optional enhancement
+    let cleaned = '';
     try {
-      console.log('[Gemini Files] Uploading PDF to Gemini Files API...');
-      const { GoogleAIFileManager } = await import('@google/generative-ai/server');
-
-      const fileManager = new GoogleAIFileManager(getGeminiKey());
-
-      const { writeFile, unlink } = await import('fs/promises');
-      const { join } = await import('path');
-      const { tmpdir } = await import('os');
-
-      const tempPath = join(tmpdir(), `upload-${Date.now()}-${name}`);
-      await writeFile(tempPath, buffer);
-
-      console.log('[Gemini Files] Uploading file:', tempPath);
-      const uploadResult = await fileManager.uploadFile(tempPath, {
-        mimeType: 'application/pdf',
-        displayName: name,
-      });
-
-      fileUri = uploadResult.file.uri;
-      console.log('[Gemini Files] Upload successful. URI:', fileUri);
-
-      await unlink(tempPath);
-
-    } catch (uploadError) {
-      console.error('[Gemini Files] Upload failed:', uploadError);
-      const errorMsg = uploadError instanceof Error ? uploadError.message : 'Failed to upload PDF';
-      return NextResponse.json(
-        {
-          error: 'Failed to process PDF file',
-          detail: errorMsg,
-        },
-        { status: 500 }
-      );
+      const pdfParse = await loadPdfParse();
+      const pdfData = await pdfParse(buffer);
+      cleaned = sanitizePdfText(pdfData.text);
+    } catch (pdfError) {
+      console.warn('pdf-parse failed, attempting LlamaParse', pdfError);
+      try {
+        // Try LlamaParse with shorter timeout for faster fallback
+        const llamaText = await parsePdfWithLlama(buffer, name, { timeoutMs: 20000 });
+        cleaned = sanitizePdfText(llamaText);
+      } catch (llamaError) {
+        console.error('Both parsers failed', { pdfError, llamaError });
+        throw new Error('Failed to extract text from PDF with both parsers');
+      }
+    }
+    if (!cleaned) {
+      return NextResponse.json({ error: 'Unable to read text from PDF' }, { status: 422 });
     }
 
-    console.log('[Gemini] Preparing prompt for PDF analysis...');
+    const sections = chunkForPrompt(cleaned).slice(0, 6);
+    const docContext = sections.map((chunk, idx) => `Section ${idx + 1}:\n${chunk}`).join('\n\n');
     const instructions = [
-      'You are parhaiGoat, a study quiz builder.',
+      'You are ParhaiPlay, a study quiz builder.',
       'Analyze the supplied PDF content and craft a JSON response that matches the provided schema.',
       'Questions should stay faithful to the facts, be concise (<260 chars), and include novel distractors.',
       'Focus on medium/hard difficulty for college-level learners.',
-      'Extract key concepts from the PDF and create 8-12 challenging questions.',
     ].join(' ');
 
-    console.log('[Gemini] Initializing model gemini-2.5-flash...');
     let model;
     try {
-      const { GoogleGenerativeAI } = await import('@google/generative-ai');
-      const genAI = new GoogleGenerativeAI(getGeminiKey());
-      model = genAI.getGenerativeModel({
-        model: 'gemini-2.5-flash',
+      model = getGeminiModel('gemini-1.5-flash', {
         generationConfig: {
           responseMimeType: 'application/json',
           responseSchema: analysisSchema,
           temperature: 0.5,
         },
       });
-      console.log('[Gemini] Model initialized successfully');
     } catch (modelError) {
       const msg = modelError instanceof Error ? modelError.message : 'Failed to initialize Gemini model';
-      console.error('[Gemini] Model init error:', modelError);
+      console.error('Gemini model init error', modelError);
       return NextResponse.json({ error: 'Failed to initialize AI model', detail: msg }, { status: 500 });
     }
 
-    console.log('[Gemini] Sending generation request with PDF file...');
     let result;
     try {
-      result = await model.generateContent([
-        {
-          fileData: {
-            mimeType: 'application/pdf',
-            fileUri: fileUri,
-          },
-        },
-        { text: instructions },
-      ]);
-      console.log('[Gemini] Content generated successfully');
+      const promptText = `${instructions}\nSource file: ${name}\n\n${docContext}`;
+      result = await model.generateContent(promptText);
     } catch (genError) {
       const msg = genError instanceof Error ? genError.message : 'Failed to generate content';
-      console.error('[Gemini] Generation error:', genError);
+      console.error('Gemini generateContent error', genError);
       return NextResponse.json({ error: 'Failed to generate quiz', detail: msg }, { status: 502 });
     }
 
     const rawText = result.response.text();
     if (!rawText) {
-      console.error('[Gemini] Empty response');
       return NextResponse.json({ error: 'Gemini returned an empty response' }, { status: 502 });
     }
 
-    console.log('[Gemini] Parsing AI response...');
     let aiPayload;
     try {
       aiPayload = JSON.parse(rawText);
-      console.log('[Gemini] Response parsed successfully');
     } catch (parseError) {
-      console.error('[Gemini] JSON parse error:', parseError, 'Raw response:', rawText.substring(0, 500));
+      console.error('JSON parse error', parseError, 'Raw response:', rawText);
       return NextResponse.json({ error: 'Failed to parse AI response', detail: 'Invalid JSON from Gemini' }, { status: 502 });
     }
-
     const questionSet = (Array.isArray(aiPayload?.quiz?.questions) ? aiPayload.quiz.questions : [])
       .map(buildQuestion)
       .filter(Boolean) as Question[];
 
     if (!questionSet.length) {
-      console.error('[Gemini] No questions generated');
       return NextResponse.json({ error: 'AI could not produce any questions' }, { status: 502 });
     }
 
-    const sections = aiPayload.sections?.map((s: any) => s.insight || s.title).filter(Boolean) || [];
-
-    console.log('[API] Success! Generated', questionSet.length, 'questions');
     return NextResponse.json({
       analysis: {
         summary: aiPayload.summary,
@@ -437,7 +220,8 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to analyze PDF';
-    console.error('[API] Top-level error:', error);
+    console.error('from-pdf error', error);
     return NextResponse.json({ error: 'Failed to analyze PDF', detail: message }, { status: 500 });
   }
 }
+

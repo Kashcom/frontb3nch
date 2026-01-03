@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     const highlightBlock = highlights.length ? highlights.map((item) => `• ${item}`).join('\n') : 'N/A';
 
     const prompt = [
-      'You are an encouraging teaching assistant called parhaiGoat Coach.',
+      'You are an encouraging teaching assistant called ParhaiPlay Coach.',
       'Generate JSON that matches the schema with headline, strengths, focus, and actions.',
       'Strengths should celebrate what went well. Focus should cover no more than 3 gaps. Actions should be specific study ideas.',
       'Limit each bullet to 160 characters and avoid emojis.',
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
 
     let model;
     try {
-      model = getGeminiModel('gemini-2.5-flash', {
+      model = getGeminiModel('gemini-1.5-flash', {
         generationConfig: {
           responseMimeType: 'application/json',
           responseSchema: reviewSchema,

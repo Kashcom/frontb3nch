@@ -18,7 +18,7 @@ interface CoachReview {
 
 const ResultPage = () => {
   const router = useRouter();
-  const { quizId, score, questions, wrongQs, responseTimes, mode, analysis, attemptHistory, currentAttempt, actions } = useStore(
+  const { quizId, score, questions, wrongQs, responseTimes, mode, analysis } = useStore(
     useShallow((state) => ({
       quizId: state.quizId,
       score: state.score,
@@ -27,17 +27,12 @@ const ResultPage = () => {
       responseTimes: state.responseTimes,
       mode: state.mode,
       analysis: state.analysis,
-      attemptHistory: state.attemptHistory,
-      currentAttempt: state.currentAttempt,
-      actions: state.actions,
     }))
   );
   const [copied, setCopied] = useState(false);
   const [reviewStatus, setReviewStatus] = useState<ReviewStatus>('idle');
   const [reviewError, setReviewError] = useState('');
   const [coachReview, setCoachReview] = useState<CoachReview | null>(null);
-  const [expandedCard, setExpandedCard] = useState<'recap' | 'stumbles' | 'insights' | null>(null);
-  const [isRegenerating, setIsRegenerating] = useState(false);
 
   const redirectRef = useRef(false);
   useEffect(() => {
@@ -51,12 +46,8 @@ const ResultPage = () => {
   const average = calculateAverage(responseTimes);
   const totalTime = totalDuration(responseTimes);
   const totalTimeLabel = formatDuration(totalTime);
-
-  const quizAttempts = attemptHistory[quizId] || [];
-  const previousAttempt = quizAttempts.length >= 2 ? quizAttempts[quizAttempts.length - 2] : null;
-  const improvementScore = previousAttempt ? percent - previousAttempt.percentage : null;
   const shareText = [
-    `parhaiGoat ${quizId || 'custom deck'} · ${mode ?? 'solo'} mode`,
+    `ParhaiPlay ${quizId || 'custom deck'} · ${mode ?? 'solo'} mode`,
     `Score: ${percent}% (${score}/${questions.length})`,
     `Time: ${totalTimeLabel}`,
     wrongQs.length ? `Missed: ${wrongQs.map((w) => w.correct).join(', ')}` : 'Flawless run!',
@@ -115,7 +106,7 @@ const ResultPage = () => {
     try {
       if (navigator.share) {
         await navigator.share({
-          title: 'parhaiGoat results',
+          title: 'ParhaiPlay results',
           text: shareText,
           url: window.location.origin,
         });
@@ -129,13 +120,9 @@ const ResultPage = () => {
     }
   };
 
-  const toggleCard = (card: 'recap' | 'stumbles' | 'insights') => {
-    setExpandedCard(expandedCard === card ? null : card);
-  };
-
   return (
     <motion.section
-      className="min-h-screen bg-dark-bg px-4 py-14 sm:px-6 sm:py-16"
+      className="bg-slate-50 px-4 py-14 sm:px-6 sm:py-16"
       initial={{ opacity: 0, x: 40 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3 }}
@@ -143,149 +130,114 @@ const ResultPage = () => {
       <h1 className="sr-only">Quiz results summary</h1>
       <div className="mx-auto flex max-w-6xl flex-col gap-8">
         <div className="grid gap-8 lg:grid-cols-2">
-          <div className="space-y-4 rounded-3xl border border-dark-border bg-dark-card p-6 shadow-xl sm:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-accent sm:text-sm">Scoreboard</p>
-            <p className="text-3xl font-bold text-white sm:text-4xl">{percent}%</p>
-            <p className="text-sm text-gray-300 sm:text-base">
+          <div className="space-y-4 rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-100 sm:p-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary sm:text-sm">Scoreboard</p>
+            <p className="text-3xl font-bold text-slate-900 sm:text-4xl">{percent}%</p>
+            <p className="text-sm text-slate-600 sm:text-base">
               You solved {score} / {questions.length} questions.
             </p>
-            <p className="text-sm text-gray-400">Average response time: {average}</p>
-            <p className="text-sm text-gray-400">Total time: {totalTimeLabel}</p>
-            {quizAttempts.length > 0 && (
-              <div className="rounded-xl border border-accent/30 bg-gradient-gold p-3">
-                <p className="text-xs font-bold uppercase tracking-wider text-dark-bg">Attempts: {quizAttempts.length}</p>
-                {improvementScore !== null && (
-                  <p className="mt-1 text-lg font-bold text-dark-bg">
-                    {improvementScore > 0 ? '+' : ''}{improvementScore}% improvement!
-                  </p>
-                )}
-              </div>
-            )}
+            <p className="text-sm text-slate-500">Average response time: {average}</p>
+            <p className="text-sm text-slate-500">Total time: {totalTimeLabel}</p>
             <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:pt-4">
               <button
                 type="button"
-                onClick={async () => {
-                  setIsRegenerating(true);
-                  // Simulate regeneration delay
-                  await new Promise(resolve => setTimeout(resolve, 1500));
-                  actions.retakeQuiz();
-                  router.push(`/play/quiz/${quizId}`);
-                }}
-                className="rounded-full bg-gradient-purple px-6 py-3 text-center text-sm font-semibold text-white shadow-lg transition hover:opacity-90 sm:flex-1"
-              >
-                {isRegenerating ? 'Regenerating...' : 'Retake Quiz'}
-              </button>
-              <button
-                type="button"
                 onClick={() => router.push('/play/import')}
-                className="rounded-full bg-gradient-green px-6 py-3 text-center text-sm font-semibold text-white shadow-lg transition hover:opacity-90 sm:flex-1"
+                className="rounded-full bg-primary px-6 py-3 text-center text-sm font-semibold text-white shadow-lg sm:flex-1"
               >
-                New Quiz
+                Play again
               </button>
               <button
                 type="button"
                 onClick={handleShare}
-                className="rounded-full border-2 border-gray-700 bg-dark-card px-6 py-3 text-center text-sm font-semibold text-gray-300 transition hover:border-accent hover:text-white sm:flex-1"
+                className="rounded-full border border-slate-200 px-6 py-3 text-center text-sm font-semibold text-slate-800 sm:flex-1"
               >
                 {copied ? 'Link copied!' : 'Share'}
               </button>
             </div>
-            <p className="text-xs uppercase tracking-[0.2em] text-gray-500">Deck: {quizId || 'custom upload'}</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Deck: {quizId || 'custom upload'}</p>
           </div>
           <ResultBadge score={percent} />
         </div>
         <div className="grid gap-8 lg:grid-cols-3">
-          <div
-            onClick={() => toggleCard('recap')}
-            className="cursor-pointer rounded-3xl border border-dark-border bg-dark-card p-6 shadow-xl transition hover:border-accent sm:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-accent sm:text-sm">Shareable recap</p>
-            <div className={`lg:block ${expandedCard === 'recap' || !expandedCard ? 'block' : 'hidden lg:block'}`}>
-              <p className="mt-3 text-2xl font-bold text-white">Spent {totalTimeLabel}</p>
-              <p className="mt-2 text-sm text-gray-400">
-                {score} of {questions.length} prompts solved · Mode: {mode ?? 'normal'}
-              </p>
-              <pre className="mt-4 whitespace-pre-wrap rounded-2xl bg-slate-900/90 p-4 text-left text-xs text-slate-100">{shareText}</pre>
-              <button
-                type="button"
-                onClick={handleShare}
-                className="mt-4 w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-slate-800"
-              >
-                {copied ? 'Copied!' : 'Share snapshot'}
-              </button>
-            </div>
+          <div className="rounded-3xl border border-dashed border-slate-200 bg-white/80 p-6 text-left shadow-inner sm:p-8">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Shareable recap</p>
+            <p className="mt-3 text-2xl font-bold text-slate-900">Spent {totalTimeLabel}</p>
+            <p className="mt-2 text-sm text-slate-600">
+              {score} of {questions.length} prompts solved · Mode: {mode ?? 'normal'}
+            </p>
+            <pre className="mt-4 whitespace-pre-wrap rounded-2xl bg-slate-900/90 p-4 text-left text-xs text-slate-100">{shareText}</pre>
+            <button
+              type="button"
+              onClick={handleShare}
+              className="mt-4 w-full rounded-2xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-slate-800"
+            >
+              {copied ? 'Copied!' : 'Share snapshot'}
+            </button>
           </div>
-          <div
-            onClick={() => toggleCard('stumbles')}
-            className="cursor-pointer rounded-3xl border border-dark-border bg-dark-card p-6 shadow-xl transition hover:border-accent sm:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-accent sm:text-sm">Review your stumbles</p>
-            <div className={`lg:block ${expandedCard === 'stumbles' || !expandedCard ? 'block' : 'hidden lg:block'}`}>
-              {wrongQs.length === 0 ? (
-                <p className="mt-4 text-sm text-gray-400 sm:text-base">Perfect score! No mistakes to review.</p>
-              ) : (
-                <div className="mt-4 max-h-[400px] space-y-4 overflow-y-auto pr-2 scrollbar-thin">
-                  {wrongQs.map((wrong, idx) => (
-                    <div key={idx} className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4">
-                      <p className="text-sm font-semibold text-white">{wrong.q}</p>
-                      {wrong.user && (
-                        <p className="text-sm text-rose-500">
-                          Your pick: <span className="font-semibold">{wrong.user}</span>
-                        </p>
-                      )}
-                      <p className="text-xs text-green-400">Correct: {wrong.correct}</p>
-                    </div>
-                  ))}
+          <div className="rounded-3xl bg-white p-6 shadow-xl ring-1 ring-slate-100 sm:p-8">
+            <p className="text-lg font-semibold text-slate-900 sm:text-xl">Review your stumbles</p>
+            {wrongQs.length === 0 ? (
+              <p className="mt-4 text-sm text-slate-600 sm:text-base">Flawless victory! No wrong answers recorded.</p>
+            ) : (
+              <ul className="mt-4 space-y-4">
+                {wrongQs.map((item, idx) => (
+                  <li key={`${item.q}-${idx}`} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                    <p className="font-semibold text-slate-800">{item.q}</p>
+                    {item.user && (
+                      <p className="text-sm text-rose-500">
+                        Your pick: <span className="font-semibold">{item.user}</span>
+                      </p>
+                    )}
+                    <p className="text-sm text-slate-500">
+                      Correct answer: <span className="font-semibold text-primary">{item.correct}</span>
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-xl sm:p-8">
+            <p className="text-lg font-semibold text-slate-900 sm:text-xl">AI review & insights</p>
+            {coachReview && (
+              <div className="mt-3 space-y-3 text-sm text-slate-600">
+                <p className="text-base font-semibold text-primary">{coachReview.headline}</p>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-500">Strengths</p>
+                  <ul className="mt-1 list-disc space-y-1 pl-4">
+                    {coachReview.strengths.map((item) => (
+                      <li key={`strength-${item}`}>{item}</li>
+                    ))}
+                  </ul>
                 </div>
-              )}
-            </div>
-          </div>
-          <div
-            onClick={() => toggleCard('insights')}
-            className="cursor-pointer rounded-3xl border border-dark-border bg-dark-card p-6 shadow-xl transition hover:border-accent sm:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-accent sm:text-sm">AI review & insights</p>
-            <div className={`lg:block ${expandedCard === 'insights' || !expandedCard ? 'block' : 'hidden lg:block'}`}>
-              <div className="max-h-[400px] overflow-y-auto pr-2 scrollbar-thin">
-                {coachReview && (
-                  <div className="mt-3 space-y-3 text-sm text-gray-300">
-                    <p className="text-base font-semibold text-accent">{coachReview.headline}</p>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-emerald-500">Strengths</p>
-                      <ul className="mt-1 list-disc space-y-1 pl-4">
-                        {coachReview.strengths.map((item) => (
-                          <li key={`strength-${item}`}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-500">Focus next</p>
-                      <ul className="mt-1 list-disc space-y-1 pl-4">
-                        {coachReview.focus.map((item) => (
-                          <li key={`focus-${item}`}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Next actions</p>
-                      <ul className="mt-1 list-disc space-y-1 pl-4">
-                        {coachReview.actions.map((item) => (
-                          <li key={`action-${item}`}>{item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                )}
-                {reviewStatus === 'loading' && <p className="mt-4 text-sm text-gray-400">Asking Gemini for coaching tips…</p>}
-                {reviewError && <p className="mt-4 text-sm text-rose-500">{reviewError}</p>}
-                {!coachReview && reviewStatus === 'ready' && !reviewError && (
-                  <p className="mt-4 text-sm text-gray-400">No AI insights available yet.</p>
-                )}
-                {summaryForAi && (
-                  <details className="mt-6 rounded-2xl border border-dark-border bg-dark-card p-4 text-left text-sm text-gray-300">
-                    <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.3em] text-accent">PDF summary</summary>
-                    <p className="mt-2">{summaryForAi}</p>
-                  </details>
-                )}
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-500">Focus next</p>
+                  <ul className="mt-1 list-disc space-y-1 pl-4">
+                    {coachReview.focus.map((item) => (
+                      <li key={`focus-${item}`}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500">Next actions</p>
+                  <ul className="mt-1 list-disc space-y-1 pl-4">
+                    {coachReview.actions.map((item) => (
+                      <li key={`action-${item}`}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
               </div>
-            </div>
+            )}
+            {reviewStatus === 'loading' && <p className="mt-4 text-sm text-slate-500">Asking Gemini for coaching tips…</p>}
+            {reviewError && <p className="mt-4 text-sm text-rose-500">{reviewError}</p>}
+            {!coachReview && reviewStatus === 'ready' && !reviewError && (
+              <p className="mt-4 text-sm text-slate-500">No AI insights available yet.</p>
+            )}
+            {summaryForAi && (
+              <details className="mt-6 rounded-2xl border border-slate-100 bg-slate-50/80 p-4 text-left text-sm text-slate-600">
+                <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">PDF summary</summary>
+                <p className="mt-2">{summaryForAi}</p>
+              </details>
+            )}
           </div>
         </div>
       </div>

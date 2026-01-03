@@ -11,23 +11,23 @@ const Hero = () => (
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
     >
-      <h1 className="text-4xl font-bold leading-tight text-white sm:text-5xl md:text-6xl">
+      <h1 className="text-4xl font-bold leading-tight text-white sm:text-5xl md:text-6xl tracking-tight">
         Master any topic with
         <br />
-        <span className="text-accent">AI-powered</span> study prep
+        <span className="text-gray-400">AI-powered</span> study prep
       </h1>
-      <p className="mt-4 text-lg text-gray-400 sm:text-xl">
+      <p className="mt-4 text-lg text-gray-400 sm:text-xl max-w-lg mx-auto md:mx-0">
         Upload PDFs, get instant quizzes. Track progress, improve continuously.
       </p>
-      <div className="flex flex-col gap-4 sm:flex-row">
+      <div className="flex flex-col gap-4 sm:flex-row justify-center md:justify-start">
         <Link
           href="/play/import"
-          className="min-h-[48px] animate-pulse-glow rounded-2xl bg-gradient-gold px-8 py-3.5 text-center text-base font-semibold text-dark-bg shadow-lg transition hover:opacity-90 sm:flex-1 sm:text-lg">
-          Play
+          className="min-h-[48px] rounded-full bg-white px-8 py-3.5 text-center text-base font-bold text-black shadow-lg hover:bg-gray-200 transition-all sm:flex-1 sm:text-lg">
+          Start Playing
         </Link>
         <Link
           href="/play/library"
-          className="min-h-[48px] rounded-2xl border-2 border-gray-700 bg-dark-card px-8 py-3.5 text-center text-base font-semibold text-gray-300 transition hover:border-accent hover:text-white sm:flex-1 sm:text-base">
+          className="min-h-[48px] rounded-full border border-gray-800 bg-transparent px-8 py-3.5 text-center text-base font-semibold text-gray-400 hover:text-white hover:border-gray-600 transition-all sm:flex-1 sm:text-base">
           Browse library
         </Link>
       </div>
@@ -38,8 +38,9 @@ const Hero = () => (
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.6, delay: 0.2 }}
     >
-      <div className="flex aspect-square items-center justify-center rounded-3xl border border-dark-border bg-dark-card p-8 shadow-2xl">
-        <span className="text-9xl">🐐</span>
+      <div className="flex aspect-square items-center justify-center rounded-3xl border border-dark-border bg-dark-card p-8 shadow-2xl relative overflow-hidden group">
+        <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        <span className="text-9xl transform group-hover:scale-110 transition-transform duration-500">🔰</span>
       </div>
     </motion.div>
   </section>
