@@ -29,8 +29,7 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const PRIMARY_PARSE_KEY = 'llx-CpDvcIilWlYVLoC0KGT9if8pcvrb7ZTuXOhIDpjo2SG7QMjs';
 
 const getParseKey = () => {
-  // Hardcoded key as primary (always available)
-  return PRIMARY_PARSE_KEY;
+  return process.env.PARSE_KEY ?? PRIMARY_PARSE_KEY;
 };
 
 const extractText = (entries?: LlamaParseResultEntry[]) => {
