@@ -171,7 +171,7 @@ export async function POST(request: Request) {
 
     let model;
     try {
-      model = getGeminiModel('gemini-2.5-flash-preview', {
+      model = getGeminiModel('gemini-2.5-flash', {
         generationConfig: {
           responseMimeType: 'application/json',
           responseSchema: analysisSchema,
