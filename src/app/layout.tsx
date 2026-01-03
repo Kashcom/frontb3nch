@@ -14,7 +14,7 @@ export const metadata: Metadata = { title: 'frontb3nch' };
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="bg-[#0a0a0a]">
-      <body className={`${inter.variable} font-sans min-h-screen bg-[#0a0a0a] text-white flex flex-col`}>
+      <body className={`${inter.variable} font-sans min-h-screen bg-transparent text-white flex flex-col`}>
         <StarBackground />
         <Navbar />
         <PageTransition>
