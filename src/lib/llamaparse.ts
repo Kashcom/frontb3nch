@@ -1,4 +1,4 @@
-const LLAMA_PARSE_BASE_URL = 'https://api.llamaindex.ai/api/v1/llamaparse';
+const LLAMA_PARSE_BASE_URL = 'https://api.cloud.llamaindex.ai/api/v1/parsing';
 const DEFAULT_POLL_INTERVAL_MS = 1500;
 const DEFAULT_TIMEOUT_MS = 30000; // Reduced from 90s to 30s for faster fallback
 
@@ -82,7 +82,7 @@ export const parsePdfWithLlama = async (
     const key = getParseKey();
     const formData = toFormData(buffer, filename);
 
-    const queuedResponse = await fetch(LLAMA_PARSE_BASE_URL, {
+    const queuedResponse = await fetch(`${LLAMA_PARSE_BASE_URL}/upload`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${key}`,
@@ -103,7 +103,7 @@ export const parsePdfWithLlama = async (
 
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
-      const statusResponse = await fetch(`${LLAMA_PARSE_BASE_URL}/${queuedPayload.id}`, {
+      const statusResponse = await fetch(`${LLAMA_PARSE_BASE_URL}/job/${queuedPayload.id}`, {
         headers: {
           Authorization: `Bearer ${key}`,
         },
@@ -120,11 +120,19 @@ export const parsePdfWithLlama = async (
         throw new Error(statusPayload.error || 'LlamaParse job failed');
       }
       if (statusPayload.status === 'SUCCESS') {
-        const text = extractText(statusPayload.result);
-        if (!text) {
-          throw new Error('LlamaParse returned success without text content');
+        const resultResponse = await fetch(`${LLAMA_PARSE_BASE_URL}/job/${queuedPayload.id}/result/markdown`, {
+          headers: {
+            Authorization: `Bearer ${key}`,
+          },
+          signal: controller.signal,
+        });
+
+        if (!resultResponse.ok) {
+          throw new Error('Failed to fetch LlamaParse result content');
         }
-        return text;
+
+        const resultJson = await resultResponse.json();
+        return resultJson.markdown ?? '';
       }
 
       await delay(pollIntervalMs);

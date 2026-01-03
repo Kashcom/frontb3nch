@@ -8,6 +8,14 @@ import { parsePdfWithLlama } from '@/lib/llamaparse';
 
 export const runtime = 'nodejs';
 
+// Polyfill DOMMatrix for pdf-parse/pdf.js in Node environment
+if (typeof global.DOMMatrix === 'undefined') {
+  // @ts-ignore
+  global.DOMMatrix = class DOMMatrix {
+    constructor() { }
+  };
+}
+
 type PdfParseFn = (dataBuffer: Buffer) => Promise<{ text: string }>;
 
 type PdfParseModule = {
