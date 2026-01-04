@@ -14,8 +14,8 @@ const Spline = dynamic(() => import('@splinetool/react-spline'), {
 const ALIGNMENT = {
   // Static Background Image (The Body)
   image: {
-    x: 0,      // Horizontal offset in pixels
-    y: 0,      // Vertical offset in pixels
+    x: -110,      // Horizontal offset in pixels
+    y: -10,      // Vertical offset in pixels
     scale: 1,  // Scale factor (1 = 100%)
   },
   // Spline 3D Scene (The Head)
