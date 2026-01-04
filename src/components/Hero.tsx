@@ -8,11 +8,11 @@ import { motion } from 'framer-motion';
 const ALIGNMENT = {
   mobile: {
     // Mobile-specific adjustments
-    image: { x: -110, y: 80, scale: 1 }, // Lowered Y for mobile
+    image: { x: -70, y: 80, scale: 0.8 }, // Lowered Y for mobile
   },
   desktop: {
     // Desktop-specific adjustments
-    image: { x: -110, y: -10, scale: 1 },
+    image: { x: -70, y: -10, scale: 0.8 },
   }
 };
 
