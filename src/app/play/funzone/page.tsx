@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 
 export default function FunzonePage() {
     return (
-        <div className="min-h-screen pt-4 pb-20 px-4 sm:px-6 bg-black">
+        <div className="min-h-screen pt-4 pb-20 px-4 sm:px-6">
             <div className="mx-auto max-w-5xl">
                 <header className="mb-8">
                     <h1 className="text-3xl font-bold text-white">Funzone</h1>

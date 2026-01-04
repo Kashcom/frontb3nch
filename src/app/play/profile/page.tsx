@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 
 export default function ProfilePage() {
     return (
-        <div className="min-h-screen bg-black pt-4 pb-20 px-4 sm:px-6">
+        <div className="min-h-screen pt-4 pb-20 px-4 sm:px-6">
             <div className="mx-auto max-w-5xl">
                 {/* Banner */}
                 <motion.div
@@ -72,7 +72,7 @@ export default function ProfilePage() {
                         transition={{ delay: 0.5 }}
                         className="space-y-6"
                     >
-                        <div className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 backdrop-blur-sm shadow-xl">
+                        <div className="rounded-2xl border border-white/10 bg-black/60 p-6 backdrop-blur-sm shadow-xl">
                             <h3 className="mb-4 text-lg font-bold text-white">Statistics</h3>
                             <div className="grid grid-cols-2 gap-4">
                                 <StatBox label="Multiplier" value="1.0x" />
@@ -99,7 +99,7 @@ export default function ProfilePage() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.6 }}
-                            className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 sm:p-8 shadow-xl"
+                            className="rounded-2xl border border-white/10 bg-black/60 p-6 sm:p-8 shadow-xl"
                         >
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-xl font-bold text-white">Earned Badges</h2>
@@ -115,11 +115,66 @@ export default function ProfilePage() {
                             </div>
                         </motion.div>
 
+                        {/* My Friends Section */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.65 }}
+                            className="rounded-2xl border border-white/10 bg-black/60 p-6 sm:p-8 shadow-xl"
+                        >
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xl font-bold text-white">My Friends</h2>
+                                <button className="rounded-full bg-white/10 px-4 py-1.5 text-xs font-bold text-white transition hover:bg-white/20">
+                                    + Add Friend
+                                </button>
+                            </div>
+
+                            <div className="space-y-4">
+                                {/* Mock Friend 1 */}
+                                <div className="flex items-center justify-between rounded-xl border border-white/5 bg-white/5 p-3 px-4 hover:bg-white/10 transition-colors group">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-10 w-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center text-sm font-bold border border-blue-500/30">
+                                            JD
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-semibold text-white">John Doe</p>
+                                            <p className="text-xs text-gray-500">Online 2m ago</p>
+                                        </div>
+                                    </div>
+                                    <button className="text-gray-400 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                                    </button>
+                                </div>
+
+                                {/* Mock Friend 2 */}
+                                <div className="flex items-center justify-between rounded-xl border border-white/5 bg-white/5 p-3 px-4 hover:bg-white/10 transition-colors group">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-10 w-10 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center text-sm font-bold border border-purple-500/30">
+                                            SA
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-semibold text-white">Sarah Alvi</p>
+                                            <p className="text-xs text-gray-500">In a Quiz</p>
+                                        </div>
+                                    </div>
+                                    <button className="text-gray-400 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                                    </button>
+                                </div>
+
+                                {/* Empty State Prompt */}
+                                <div className="text-center pt-2">
+                                    <button className="text-xs text-gray-500 hover:text-gray-300">View all friends</button>
+                                </div>
+                            </div>
+
+                        </motion.div>
+
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.7 }}
-                            className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 sm:p-8 shadow-xl"
+                            className="rounded-2xl border border-white/10 bg-black/60 p-6 sm:p-8 shadow-xl"
                         >
                             <h2 className="text-xl font-bold text-white mb-6">Recent Activity</h2>
                             <div className="flex flex-col gap-4">
