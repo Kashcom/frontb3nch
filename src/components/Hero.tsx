@@ -28,10 +28,18 @@ const Hero = () => (
         {/* Layer 1: Static Background Image (Body) */}
         {/* Using Tailwind arbitrary values for responsive transforms based on config */}
         <div
-          className={`absolute inset-0 h-full w-full 
-            [transform:translate(${ALIGNMENT.mobile.image.x}px,${ALIGNMENT.mobile.image.y}px)_scale(${ALIGNMENT.mobile.image.scale})]
-            md:[transform:translate(${ALIGNMENT.desktop.image.x}px,${ALIGNMENT.desktop.image.y}px)_scale(${ALIGNMENT.desktop.image.scale})]
-          `}
+          style={{
+            '--m-x': `${ALIGNMENT.mobile.image.x}px`,
+            '--m-y': `${ALIGNMENT.mobile.image.y}px`,
+            '--m-s': ALIGNMENT.mobile.image.scale,
+            '--d-x': `${ALIGNMENT.desktop.image.x}px`,
+            '--d-y': `${ALIGNMENT.desktop.image.y}px`,
+            '--d-s': ALIGNMENT.desktop.image.scale,
+          } as React.CSSProperties & Record<string, any>}
+          className="absolute inset-0 h-full w-full 
+            [transform:translate(var(--m-x),var(--m-y))_scale(var(--m-s))]
+            md:[transform:translate(var(--d-x),var(--d-y))_scale(var(--d-s))]
+          "
         >
           <img
             src="/desktop-herobg.png"
