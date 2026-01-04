@@ -51,7 +51,7 @@ const Hero = () => (
         3. Export -> Code -> Copy the URL (ending in .splinecode)
       */}
       <div className="w-full h-full relative z-10">
-        <Spline scene="https://prod.spline.design/6Wq1Q7YGyM-iab9i/scene.splinecode" />
+        <Spline scene="/desktop-hero.splinecode" />
       </div>
 
 
