@@ -33,7 +33,7 @@ const Hero = () => (
         </Link>
         <Link
           href="/play/library"
-          className="min-h-[48px] rounded-full border border-gray-800 bg-transparent px-8 py-3.5 text-center text-base font-semibold text-gray-400 hover:text-white hover:border-gray-600 transition-all sm:flex-1 sm:text-base">
+          className="relative h-48 w-full overflow-hidden rounded-3xl bg-zinc-900 border border-white/5 text-base font-semibold text-gray-400 hover:text-white hover:border-gray-600 transition-all sm:flex-1 sm:text-base">
           Browse library
         </Link>
       </div>

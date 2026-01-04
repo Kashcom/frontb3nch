@@ -11,10 +11,9 @@ export default function ProfilePage() {
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="relative h-48 w-full overflow-hidden rounded-3xl bg-gradient-to-r from-purple-900 via-indigo-900 to-blue-900 sm:h-64 border border-white/5"
+                    className="relative h-48 w-full overflow-hidden rounded-3xl bg-zinc-900 border border-white/5"
                 >
-                    <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                    <div className="absolute inset-0 bg-white/[0.02]"></div>
                 </motion.div>
 
                 {/* Profile Header */}
@@ -23,9 +22,9 @@ export default function ProfilePage() {
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         transition={{ delay: 0.1 }}
-                        className="relative h-32 w-32 shrink-0 overflow-hidden rounded-full border-[6px] border-black bg-zinc-900 shadow-2xl sm:h-40 sm:w-40"
+                        className="relative h-32 w-32 shrink-0 overflow-hidden rounded-full border-[6px] border-black bg-zinc-800 shadow-2xl sm:h-40 sm:w-40"
                     >
-                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 text-4xl font-bold text-white">
+                        <div className="flex h-full w-full items-center justify-center bg-zinc-800 text-4xl font-bold text-gray-400">
                             U
                         </div>
                     </motion.div>
@@ -84,11 +83,10 @@ export default function ProfilePage() {
                         </div>
 
                         <div className="relative rounded-2xl border border-white/10 overflow-hidden group">
-                            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                             <div className="relative h-full w-full bg-[#0a0a0a]/90 p-6 backdrop-blur-xl">
                                 <h3 className="mb-2 text-lg font-bold text-white">Pro Plan</h3>
                                 <p className="mb-6 text-sm text-gray-400 leading-relaxed">Upgrade to unlock unlimited quizzes, advanced analytics, and exclusive badges.</p>
-                                <button className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 py-3 text-sm font-bold text-white shadow-lg transition hover:shadow-indigo-500/25 active:scale-[0.98]">
+                                <button className="w-full rounded-xl bg-white text-black py-3 text-sm font-bold shadow-lg transition hover:bg-gray-200 active:scale-[0.98]">
                                     Upgrade Now
                                 </button>
                             </div>
