@@ -62,21 +62,26 @@ const DailyStreakFab = () => {
                 )}
             </AnimatePresence>
 
+            {/* Rotating Sun Rays (Background) */}
+            <motion.div
+                className="absolute -inset-4 rounded-full z-[-10]"
+                style={{
+                    background: "repeating-conic-gradient(from 0deg, rgba(250, 204, 21, 0.4) 0deg 20deg, transparent 20deg 40deg)"
+                }}
+                animate={{ rotate: 360 }}
+                transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+            >
+                <div className="absolute inset-2 rounded-full bg-black/20 blur-xl" />
+            </motion.div>
+
             <motion.button
                 onClick={handleClaim}
                 onHoverStart={() => setShowTooltip(true)}
                 onHoverEnd={() => setShowTooltip(false)}
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="relative flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 shadow-[0_0_25px_rgba(234,179,8,0.6)] border-2 border-white/20"
+                className="relative z-10 flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 shadow-[0_0_25px_rgba(234,179,8,0.6)] border-2 border-white/20"
             >
-                {/* Halo Effect */}
-                <motion.div
-                    className="absolute inset-0 rounded-full border-4 border-yellow-200 opacity-0"
-                    animate={{ scale: [1, 1.3], opacity: [0.6, 0] }}
-                    transition={{ repeat: Infinity, duration: 1.5, ease: "easeOut" }}
-                />
-
                 <span className="text-3xl filter drop-shadow-md">🎁</span>
 
                 {/* Streak Badge (if existing streak > 0) */}
@@ -85,7 +90,6 @@ const DailyStreakFab = () => {
                         {user.streak}
                     </div>
                 )}
-
             </motion.button>
 
             {/* Tooltip */}
