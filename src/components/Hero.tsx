@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import DailyStreakFab from '@/components/DailyStreakFab';
 
 // Manual alignment configuration for the Body (Image)
 // Adjust these values to perfectly align the static body
@@ -79,6 +80,9 @@ const Hero = () => (
       {/* Spacer for Right Side - keeps the text to the left on desktop */}
       <div className="hidden md:block md:w-1/2" />
     </section>
+
+    {/* Daily Streak FAB */}
+    <DailyStreakFab />
   </>
 );
 

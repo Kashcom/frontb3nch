@@ -10,12 +10,15 @@ interface UserProfile {
     level: number;
     currentExp: number;
     maxExp: number;
+    streak: number;
+    hasClaimedToday: boolean;
 }
 
 interface UserContextType {
     user: UserProfile;
     updateProfile: (updates: Partial<UserProfile>) => void;
     addExp: (amount: number) => void;
+    claimDailyBonus: () => boolean; // Returns true if successful
 }
 
 const defaultUser: UserProfile = {
@@ -26,12 +29,15 @@ const defaultUser: UserProfile = {
     level: 1,
     currentExp: 350,
     maxExp: 1000,
+    streak: 0,
+    hasClaimedToday: false,
 };
 
 const UserContext = createContext<UserContextType>({
     user: defaultUser,
     updateProfile: () => { },
     addExp: () => { },
+    claimDailyBonus: () => false,
 });
 
 export const UserProvider = ({ children }: { children: ReactNode }) => {
@@ -63,8 +69,23 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
         });
     };
 
+    const claimDailyBonus = () => {
+        if (user.hasClaimedToday) return false;
+
+        const bonusExp = 200; // Fixed bonus + streak multiplier could go here
+        addExp(bonusExp);
+
+        setUser(prev => ({
+            ...prev,
+            streak: prev.streak + 1,
+            hasClaimedToday: true
+        }));
+
+        return true;
+    };
+
     return (
-        <UserContext.Provider value={{ user, updateProfile, addExp }}>
+        <UserContext.Provider value={{ user, updateProfile, addExp, claimDailyBonus }}>
             {children}
         </UserContext.Provider>
     );
