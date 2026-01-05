@@ -28,7 +28,7 @@ const Navbar = ({ isDashboard = false }: { isDashboard?: boolean }) => {
         <div className="hidden items-center gap-1 sm:flex">
           {!isDashboard && (
             <>
-              <NavLink href="/dashboard">Learning</NavLink>
+              <NavLink href="/learning">Learning</NavLink>
               <NavLink href="/play/library">Library</NavLink>
               <NavLink href="/about">About</NavLink>
             </>
@@ -112,7 +112,7 @@ const Navbar = ({ isDashboard = false }: { isDashboard?: boolean }) => {
                   {!isDashboard && (
                     <>
                       <div className="my-1 border-b border-white/5" />
-                      <DropdownItem href="/dashboard" icon="🤖" onClick={() => setIsMenuOpen(false)}>Learning</DropdownItem>
+                      <DropdownItem href="/learning" icon="🤖" onClick={() => setIsMenuOpen(false)}>Learning</DropdownItem>
                       <DropdownItem href="/play/library" icon="📚" onClick={() => setIsMenuOpen(false)}>Library</DropdownItem>
                       <DropdownItem href="/about" icon="ℹ️" onClick={() => setIsMenuOpen(false)}>About</DropdownItem>
                     </>
