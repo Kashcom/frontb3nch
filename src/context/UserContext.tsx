@@ -12,6 +12,10 @@ interface UserProfile {
     maxExp: number;
     streak: number;
     hasClaimedToday: boolean;
+    dashboardConfig: {
+        bgColor: string;
+        bgImage: string | null;
+    };
 }
 
 interface UserContextType {
@@ -31,6 +35,10 @@ const defaultUser: UserProfile = {
     maxExp: 1000,
     streak: 0,
     hasClaimedToday: false,
+    dashboardConfig: {
+        bgColor: '#000000', // Default black
+        bgImage: null,
+    },
 };
 
 const UserContext = createContext<UserContextType>({
@@ -44,7 +52,15 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<UserProfile>(defaultUser);
 
     const updateProfile = (updates: Partial<UserProfile>) => {
-        setUser((prev) => ({ ...prev, ...updates }));
+        setUser((prev) => ({
+            ...prev,
+            ...updates,
+            // special handling for dashboardConfig merging if partial is passed?
+            // simpler to just require passing full config or handle it inside here.
+            // But strict Partial<UserProfile> works if we replace the whole object.
+            // Let's ensure if dashboardConfig is passed partially it merges, but usually Partial implies top level.
+            // Actually, if I pass { dashboardConfig: { ...prev.dashboardConfig, ...new } } from component it works.
+        }));
     };
 
     const addExp = (amount: number) => {
