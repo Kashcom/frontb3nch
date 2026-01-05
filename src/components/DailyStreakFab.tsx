@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUser } from '@/context/UserContext';
 
@@ -8,6 +8,16 @@ const DailyStreakFab = () => {
     const { user, claimDailyBonus } = useUser();
     const [showTooltip, setShowTooltip] = useState(false);
     const [isClaiming, setIsClaiming] = useState(false);
+    const [isVisible, setIsVisible] = useState(true);
+
+    useEffect(() => {
+        if (user.hasClaimedToday) {
+            const timer = setTimeout(() => {
+                setIsVisible(false);
+            }, 5000); // Disappear after 5 seconds
+            return () => clearTimeout(timer);
+        }
+    }, [user.hasClaimedToday]);
 
     const handleClaim = () => {
         if (user.hasClaimedToday || isClaiming) return;
@@ -20,27 +30,32 @@ const DailyStreakFab = () => {
         }, 800);
     };
 
+    if (!isVisible) return null;
+
     if (user.hasClaimedToday) {
         // Optional: Don't show if claimed, or show a 'checked' state. 
         // For now, let's keep it visible but disabled/checked to show off the streak.
         return (
-            <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="fixed bottom-8 right-8 z-40 group"
-            >
-                <div className="relative flex items-center justify-center h-16 w-16 rounded-full bg-zinc-900 border border-green-500/50 shadow-[0_0_20px_rgba(34,197,94,0.3)]">
-                    <div className="text-2xl">🔥</div>
-                    <div className="absolute -top-2 -right-2 bg-green-500 text-black text-xs font-bold px-2 py-0.5 rounded-full border border-black shadow-lg">
-                        {user.streak}
-                    </div>
+            <AnimatePresence>
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.5 } }}
+                    className="fixed bottom-8 right-8 z-40 group"
+                >
+                    <div className="relative flex items-center justify-center h-16 w-16 rounded-full bg-zinc-900 border border-green-500/50 shadow-[0_0_20px_rgba(34,197,94,0.3)]">
+                        <div className="text-2xl">🔥</div>
+                        <div className="absolute -top-2 -right-2 bg-green-500 text-black text-xs font-bold px-2 py-0.5 rounded-full border border-black shadow-lg">
+                            {user.streak}
+                        </div>
 
-                    {/* Tooltip for claimed state */}
-                    <div className="absolute bottom-full right-0 mb-3 px-3 py-1 bg-black/80 backdrop-blur-md rounded-lg border border-white/10 text-xs text-green-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                        Streak Saved! Come back tomorrow.
+                        {/* Tooltip for claimed state */}
+                        <div className="absolute bottom-full right-0 mb-3 px-3 py-1 bg-black/80 backdrop-blur-md rounded-lg border border-white/10 text-xs text-green-400 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                            Streak Saved! See you tomorrow.
+                        </div>
                     </div>
-                </div>
-            </motion.div>
+                </motion.div>
+            </AnimatePresence>
         );
     }
 
@@ -64,14 +79,15 @@ const DailyStreakFab = () => {
 
             {/* Rotating Sun Rays (Background) */}
             <motion.div
-                className="absolute -inset-4 rounded-full z-[-10]"
+                className="absolute -inset-8 rounded-full z-[-10]"
                 style={{
-                    background: "repeating-conic-gradient(from 0deg, rgba(250, 204, 21, 0.4) 0deg 20deg, transparent 20deg 40deg)"
+                    background: "repeating-conic-gradient(from 0deg, rgba(250, 204, 21, 0.3) 0deg 15deg, transparent 15deg 30deg)",
+                    maskImage: "radial-gradient(circle, black 40%, transparent 70%)",
+                    WebkitMaskImage: "radial-gradient(circle, black 40%, transparent 70%)"
                 }}
                 animate={{ rotate: 360 }}
-                transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
             >
-                <div className="absolute inset-2 rounded-full bg-black/20 blur-xl" />
             </motion.div>
 
             <motion.button
