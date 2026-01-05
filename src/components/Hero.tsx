@@ -36,7 +36,7 @@ const Hero = () => (
             '--d-y': `${ALIGNMENT.desktop.image.y}px`,
             '--d-s': ALIGNMENT.desktop.image.scale,
           } as React.CSSProperties & Record<string, any>}
-          className="absolute inset-0 h-full w-full 
+          className="hidden md:block absolute inset-0 h-full w-full 
             [transform:translate(var(--m-x),var(--m-y))_scale(var(--m-s))]
             md:[transform:translate(var(--d-x),var(--d-y))_scale(var(--d-s))]
           "
