@@ -1,19 +1,59 @@
 'use client';
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { motion } from 'framer-motion';
+import { useUser } from '@/context/UserContext';
 
 export default function ProfilePage() {
+    const { user, updateProfile } = useUser();
+    const avatarInputRef = useRef<HTMLInputElement>(null);
+    const bannerInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, field: 'avatar' | 'banner') => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                updateProfile({ [field]: reader.result as string });
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     return (
         <div className="min-h-screen pt-4 pb-20 px-4 sm:px-6">
             <div className="mx-auto max-w-5xl">
+                {/* Hidden Inputs */}
+                <input
+                    type="file"
+                    ref={bannerInputRef}
+                    className="hidden"
+                    accept="image/*"
+                    onChange={(e) => handleFileChange(e, 'banner')}
+                />
+                <input
+                    type="file"
+                    ref={avatarInputRef}
+                    className="hidden"
+                    accept="image/*"
+                    onChange={(e) => handleFileChange(e, 'avatar')}
+                />
+
                 {/* Banner */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="relative h-48 w-full overflow-hidden rounded-3xl bg-zinc-900 border border-white/5"
+                    className="relative h-48 w-full overflow-hidden rounded-3xl bg-zinc-900 border border-white/5 cursor-pointer group"
+                    onClick={() => bannerInputRef.current?.click()}
                 >
-                    <div className="absolute inset-0 bg-white/[0.02]"></div>
+                    {user.banner ? (
+                        <img src={user.banner} alt="Banner" className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                    ) : (
+                        <div className="absolute inset-0 bg-white/[0.02]"></div>
+                    )}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span className="text-white font-medium bg-black/50 px-4 py-2 rounded-full backdrop-blur-sm">Change Banner</span>
+                    </div>
                 </motion.div>
 
                 {/* Profile Header */}
@@ -22,10 +62,21 @@ export default function ProfilePage() {
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         transition={{ delay: 0.1 }}
-                        className="relative h-32 w-32 shrink-0 overflow-hidden rounded-full border-[6px] border-black bg-zinc-800 shadow-2xl sm:h-40 sm:w-40"
+                        className="relative h-32 w-32 shrink-0 overflow-hidden rounded-full border-[6px] border-black bg-zinc-800 shadow-2xl sm:h-40 sm:w-40 cursor-pointer group"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            avatarInputRef.current?.click();
+                        }}
                     >
-                        <div className="flex h-full w-full items-center justify-center bg-zinc-800 text-4xl font-bold text-gray-400">
-                            U
+                        {user.avatar ? (
+                            <img src={user.avatar} alt="Profile" className="h-full w-full object-cover" />
+                        ) : (
+                            <div className="flex h-full w-full items-center justify-center bg-zinc-800 text-4xl font-bold text-gray-400">
+                                {user.name.charAt(0).toUpperCase()}
+                            </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                         </div>
                     </motion.div>
 
@@ -36,7 +87,7 @@ export default function ProfilePage() {
                             transition={{ delay: 0.2 }}
                             className="text-3xl font-bold text-white sm:text-4xl"
                         >
-                            Guest User
+                            {user.name}
                         </motion.h1>
                         <motion.p
                             initial={{ opacity: 0, x: -20 }}
@@ -44,7 +95,7 @@ export default function ProfilePage() {
                             transition={{ delay: 0.3 }}
                             className="mt-1 text-gray-400 font-medium"
                         >
-                            Level 1 • Novice Learner
+                            Level {user.level} {user.level < 5 ? '• Novice Learner' : user.level < 10 ? '• Intermediate' : '• Expert'}
                         </motion.p>
                     </div>
 
@@ -75,8 +126,8 @@ export default function ProfilePage() {
                         <div className="rounded-2xl border border-white/10 bg-black/60 p-6 backdrop-blur-sm shadow-xl">
                             <h3 className="mb-4 text-lg font-bold text-white">Statistics</h3>
                             <div className="grid grid-cols-2 gap-4">
-                                <StatBox label="Multiplier" value="1.0x" />
-                                <StatBox label="Rank" value="#--" />
+                                <StatBox label="XP" value={`${Math.floor(user.currentExp)}`} />
+                                <StatBox label="Next Level" value={`${user.maxExp}`} />
                                 <StatBox label="Quizzes" value="0" />
                                 <StatBox label="Avg Score" value="-%" />
                             </div>

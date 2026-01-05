@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useUser } from '@/context/UserContext';
 
 const Navbar = ({ isDashboard = false }: { isDashboard?: boolean }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user } = useUser();
 
   return (
     <header className="fixed top-4 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none">
@@ -40,9 +42,18 @@ const Navbar = ({ isDashboard = false }: { isDashboard?: boolean }) => {
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className={`flex items-center gap-3 rounded-full border border-white/10 bg-zinc-900/50 pl-1 pr-4 py-1 transition hover:bg-zinc-800 hover:border-white/20 ${isMenuOpen ? 'bg-zinc-800 border-white/20' : ''}`}
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-700 text-xs font-bold text-white shadow-lg border border-white/10">
-                U
-              </div>
+
+              {user.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt="Profile"
+                  className="h-9 w-9 rounded-full object-cover shadow-lg border border-white/10"
+                />
+              ) : (
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-700 text-xs font-bold text-white shadow-lg border border-white/10">
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+              )}
               <span className="text-sm font-medium text-gray-300">Account</span>
               {/* Chevron Icon */}
               <svg className={`w-4 h-4 text-gray-500 transition-transform duration-300 ${isMenuOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -61,8 +72,22 @@ const Navbar = ({ isDashboard = false }: { isDashboard?: boolean }) => {
                   className="pointer-events-auto absolute right-0 top-full mt-3 w-64 rounded-2xl border border-white/10 bg-black/80 p-2 shadow-2xl origin-top-right overflow-hidden backdrop-blur-3xl"
                 >
                   <div className="px-4 py-3 border-b border-white/5 mb-2">
-                    <p className="text-sm font-bold text-white">My Account</p>
-                    <p className="text-xs text-gray-500 mt-0.5 truncate">guest@frontb3nch.app</p>
+                    <p className="text-sm font-bold text-white">{user.name}</p>
+                    <p className="text-xs text-gray-500 mt-0.5 truncate">{user.email}</p>
+
+                    {/* XP Meter */}
+                    <div className="mt-3">
+                      <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+                        <span>Lvl {user.level}</span>
+                        <span>{Math.floor(user.currentExp)} / {user.maxExp} XP</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500 ease-out"
+                          style={{ width: `${(user.currentExp / user.maxExp) * 100}%` }}
+                        />
+                      </div>
+                    </div>
                   </div>
                   <div className="flex flex-col gap-1">
                     <DropdownItem href="/dashboard" icon="📊">Dashboard</DropdownItem>
@@ -83,7 +108,18 @@ const Navbar = ({ isDashboard = false }: { isDashboard?: boolean }) => {
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             className="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 border border-white/10 active:scale-95 transition-transform"
           >
-            <div className="h-full w-full rounded-full bg-zinc-700 flex items-center justify-center text-sm font-bold text-white">U</div>
+
+            {user.avatar ? (
+              <img
+                src={user.avatar}
+                alt="Profile"
+                className="h-full w-full rounded-full object-cover"
+              />
+            ) : (
+              <div className="h-full w-full rounded-full bg-zinc-700 flex items-center justify-center text-sm font-bold text-white">
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+            )}
           </button>
 
           {/* Mobile Dropdown - Positioned relative to the button/container */}
@@ -96,12 +132,37 @@ const Navbar = ({ isDashboard = false }: { isDashboard?: boolean }) => {
                 transition={{ duration: 0.2, ease: "easeOut" }}
                 className="pointer-events-auto absolute right-0 top-full mt-3 w-64 rounded-2xl border border-white/10 bg-black/80 p-2 shadow-2xl origin-top-right overflow-hidden backdrop-blur-3xl z-50"
               >
+
                 <div className="px-4 py-3 border-b border-white/5 mb-2">
                   <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-zinc-700 flex items-center justify-center text-xs font-bold text-white border border-white/10">U</div>
-                    <div>
-                      <p className="text-sm font-bold text-white">My Account</p>
-                      <p className="text-[10px] text-gray-500 truncate">guest@frontb3nch.app</p>
+                    {user.avatar ? (
+                      <img
+                        src={user.avatar}
+                        alt="Profile"
+                        className="h-8 w-8 rounded-full object-cover border border-white/10"
+                      />
+                    ) : (
+                      <div className="h-8 w-8 rounded-full bg-zinc-700 flex items-center justify-center text-xs font-bold text-white border border-white/10">
+                        {user.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-white truncate">{user.name}</p>
+                      <p className="text-[10px] text-gray-500 truncate">{user.email}</p>
+                    </div>
+                  </div>
+
+                  {/* XP Meter */}
+                  <div className="mt-3">
+                    <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+                      <span>Lvl {user.level}</span>
+                      <span>{Math.floor(user.currentExp)} / {user.maxExp} XP</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500 ease-out"
+                        style={{ width: `${(user.currentExp / user.maxExp) * 100}%` }}
+                      />
                     </div>
                   </div>
                 </div>
