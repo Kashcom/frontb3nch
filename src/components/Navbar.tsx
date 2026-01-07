@@ -32,6 +32,7 @@ const Navbar = ({ isDashboard = false }: { isDashboard?: boolean }) => {
             <>
               <NavLink href="/learning">Learning</NavLink>
               <NavLink href="/play/library">Library</NavLink>
+              <NavLink href="/play/funzone">Funzone</NavLink>
               <NavLink href="/about">About</NavLink>
             </>
           )}
